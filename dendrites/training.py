@@ -565,7 +565,7 @@ def train_L5(rates_e, rates_i, S_E, S_I, Labels, E, E_P, W_E, W_I, P, kernel, cm
                 w_e[w_e > w_e_max] = w_e_max
                 w_i[w_i > w_i_max] = w_i_max
             cell.set_weights(w_e, w_i)
-            print("label: %d, E: %d" % (Labels[ind], E_P[ind]))
+            print("label: %d, E: %d, num_spike: %d" % (Labels[ind], E_P[ind][-1], num_spikes))
 
         E.append(E_trial)
         alpha = alpha0/(1 + alpha_d*len(E))
@@ -574,8 +574,8 @@ def train_L5(rates_e, rates_i, S_E, S_I, Labels, E, E_P, W_E, W_I, P, kernel, cm
         if len(E) % 10 == 0:
             print('epoch: ' + str(len(E)) + '  error: ' + str(np.nanmean(E[-10:])/num_patterns))
             # uncomment below to checkpoint on long simulations
-            # pickle.dump([rates_e, rates_i, S_E, S_I, Labels, E, E_P, W_E, W_I, P,
-            #             kernel], open(model_file, 'wb'))
+            pickle.dump([rates_e, rates_i, S_E, S_I, Labels, E, E_P, W_E, W_I, P,
+                        kernel], open(model_file, 'wb'))
     return E, E_P, W_E, W_I, P
 
 def train_online(rates_e, rates_i, S_E, S_I, Labels, E, E_P, W_E, W_I, P):

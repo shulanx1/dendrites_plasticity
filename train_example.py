@@ -34,7 +34,7 @@ r_max, num_t, s = param_sets[input]
 
 
 ### Simulation Parameters ###
-stim_dur = 300							# stimulus duration
+stim_dur = 400							# stimulus duration
 stim_on = 100							# stimulus on
 stim_off = stim_on + stim_dur           # stimulus off
 t_on = 0								# background on
@@ -189,7 +189,7 @@ E_P = [[0.5] for k in range(num_patterns)]
 W_E = [np.array(w_e)]
 W_I = [np.array(w_i)]
 
-### Train Model ###
+#%% ### Train Model ###
 # E, E_P, W_E, W_I, P = training.train(rates_e, rates_i, S_E, S_I, Labels, E, E_P,
 #                                     W_E, W_I, P, kernel)
 P['spike_num_thre'] = 1
@@ -201,13 +201,16 @@ if save_output:
     pickle.dump([rates_e, rates_i, S_E, S_I, Labels, E, E_P, W_E, W_I, P, kernel],
         open(model_file, 'wb'))
 
-### Test Trained Model ####
+#%% ### Test Trained Model ####
+wd = "C:\\work\\Code\\Dendrites_plasticity"
+test_file = wd + "\\outputs\\test_init"
 h('forall pop_section()')
 h('forall delete_section()')
 reps = 5
 cell = neuron_model.NModel(P)
 np.random.seed(seed)
-cell.set_weights(W_E[-1], W_I[-1])
+# cell.set_weights(W_E[-1], W_I[-1])
+cell.set_weights(w_e, w_i)
 if num_t > 0:
     sigma = jitter*s*1e-3*r_max*(stim_off - stim_on)/num_t
 else:
@@ -266,3 +269,4 @@ ax1.yaxis.set_ticks_position('left')
 ax1.xaxis.set_ticks_position('bottom')
 pyplot.tight_layout()
 pyplot.show()
+pickle.dump([V, rates_e, rates_i, S_e_all, S_i_all,Labels,t],open(test_file, 'wb'))
