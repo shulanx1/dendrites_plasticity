@@ -109,9 +109,9 @@ def plot_input_output(V, rates_e, rates_i, S_e_all, S_i_all, t,W_e, W_i, rep_plo
     syn_color2 = np.asarray([240,90,36])/255
     syn_colorg = np.asarray([180,180,180])/255
     plt.figure()
-    y_start = -80
     for i in range(min(rep_plot,len(V[0]))):
         for j in range(len(V)):
+            y_start = -80
             plt.plot(t+t[-1]*(i*len(V)+j), V[j][i], 'k')
             for k in range(len(rates_e[0])):
                 if len(S_e_all[j][i][k]>0) and ((k%sparse_plot[0])==0):
@@ -130,9 +130,9 @@ def plot_input_output(V, rates_e, rates_i, S_e_all, S_i_all, t,W_e, W_i, rep_plo
                     if (abs(rate2) > 1e-4) and (abs(rate3) > 1e-4):
                         plt.plot(S_e_all[j][i][k] + t[-1] * (i * len(V) + j), y_start*np.ones([len(S_e_all[j][i][k]),]), color=syn_colorg, marker='^',linestyle = 'None',
                                  markersize=min_size + (max_size - min_size) * W_e[k])
-                if (k % (sparese_polt[1]*sparse_plot[0])) == 0:
-                    y_start = y_start - 5
-            y_start = y_start - 15
+                if (k % (sparse_plot[1]*sparse_plot[0])) == 0:
+                    y_start = y_start - 10
+            y_start = y_start - 20
             for k in range(len(rates_i[0])):
                 if len(S_i_all[j][i][k] > 0) and ((k%sparse_plot[0])==0):
                     rate0 = rates_i[0][k]
@@ -150,7 +150,7 @@ def plot_input_output(V, rates_e, rates_i, S_e_all, S_i_all, t,W_e, W_i, rep_plo
                     if (abs(rate2) > 1e-4) and (abs(rate3) > 1e-4):
                         plt.plot(S_i_all[j][i][k] + t[-1] * (i * len(V) + j), y_start*np.ones([len(S_i_all[j][i][k]),]), color=syn_colorg, marker='^',linestyle = 'None',
                                  markersize=min_size + (max_size - min_size) * W_i[k])
-                if (k % (sparese_polt[1]*sparse_plot[0])) == 0:
+                if (k % (sparse_plot[1]*sparse_plot[0])) == 0:
                     y_start = y_start - 5
     plt.show()
 

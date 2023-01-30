@@ -466,7 +466,7 @@ def train_L5(rates_e, rates_i, S_E, S_I, Labels, E, E_P, W_E, W_I, P, kernel, cm
     if 'spike_num_thre' in P:
         spike_num_thre = P['spike_num_thre']
     else:
-        spike_num_thre = 5
+        spike_num_thre = 0
 
     if num_t > 0:
         sigma = jitter*s*1e-3*r_max*(stim_off - stim_on)/num_t
@@ -502,7 +502,8 @@ def train_L5(rates_e, rates_i, S_E, S_I, Labels, E, E_P, W_E, W_I, P, kernel, cm
             label = np.array(Labels[ind])
 
             if label == 1:
-                I_inj = 0.05*np.mean(E_P[ind][-10:])
+                I_inj = 0
+                # I_inj = 0.05*np.mean(E_P[ind][-10:])
             else:
                 I_inj = 0
 
@@ -523,22 +524,27 @@ def train_L5(rates_e, rates_i, S_E, S_I, Labels, E, E_P, W_E, W_I, P, kernel, cm
 
             t_inds = spike_inds(v, int(offset/dt))
             t_inds = t_inds[t_inds > stim_on/dt]
-            # print(t_inds)
             num_spikes = len(t_inds)
             if label == -1 and num_spikes > spike_num_thre:  # modified threshold, output smaller than spontaneous baseline is considered negative
-                alpha_t = alpha*np.mean(E_P[ind][-10:])
+                # alpha_t = alpha*np.mean(E_P[ind][-10:])
                 E_P[ind].append(1)
                 E_trial += 1
             elif label == -1 and num_spikes <= spike_num_thre:
                 E_P[ind].append(0)
-                continue
             elif label == 1 and num_spikes > spike_num_thre:
-                alpha_t = alpha*np.mean(E_P[ind][-10:])
+                # alpha_t = alpha*np.mean(E_P[ind][-10:])
                 E_P[ind].append(0)
-            else:
+            elif label == 1 and num_spikes <= spike_num_thre:
                 E_trial += 1
                 E_P[ind].append(1)
+
+            print("label: " + str(label) + " E: " + str(E_P[ind][-1])+ " spike_num: " + str(num_spikes))
+
+            if num_spikes == 0:
                 continue
+            else:
+                alpha_t = alpha*np.mean(E_P[ind][-10:])
+
             t0_inds = t_inds - int(t_window/dt)
             t0_inds[t0_inds < 0] = 0
 
@@ -565,7 +571,6 @@ def train_L5(rates_e, rates_i, S_E, S_I, Labels, E, E_P, W_E, W_I, P, kernel, cm
                 w_e[w_e > w_e_max] = w_e_max
                 w_i[w_i > w_i_max] = w_i_max
             cell.set_weights(w_e, w_i)
-            print("label: %d, E: %d, num_spike: %d" % (Labels[ind], E_P[ind][-1], num_spikes))
 
         E.append(E_trial)
         alpha = alpha0/(1 + alpha_d*len(E))
