@@ -502,8 +502,8 @@ def train_L5(rates_e, rates_i, S_E, S_I, Labels, E, E_P, W_E, W_I, P, kernel, cm
             label = np.array(Labels[ind])
 
             if label == 1:
-                I_inj = 0
-                # I_inj = 0.05*np.mean(E_P[ind][-10:])
+                # I_inj = 0
+                I_inj = 0.15*np.mean(E_P[ind][-10:])
             else:
                 I_inj = 0
 

@@ -4,6 +4,7 @@ Functions for generating sets of random presynaptic spike sequences.
 
 import numpy as np
 import numba as nb
+from itertools import permutations
 
 
 class PreSyn:
@@ -319,6 +320,135 @@ def assoc_seqs(num, N_e, N_i, T0, T, n):
             S_i.append(s_i)
     return S_e, S_i
 
+def assoc_rates_time_squence(p, N_e, N_i, r_mean, r_max):
+    """ Define sets of rate vectors for detection of time sequence task. Draws for two
+    stimulus features separately and then forms conjunctions of pairs
+
+    Parameters
+    ----------
+    p : int
+        total number of features (num = p!)
+    N_e, N_i : int
+        number of excitatory and inhibitory synapses
+    r_mean : float
+        ensemble average rate
+    r_max : float
+        rate of active synapses
+
+    Returns
+    -------
+    rates_e, rates_i : list
+        sets of E and I rate vectors
+    """
+    rates_e = []
+    rates_i = []
+    n_e1 = int(N_e/p)
+    n_i1 = int(N_i/p)
+    re = []
+    ri = []
+    for j in range(p):
+        re1, ri1 = sparse_rates(p, n_e1, n_i1, r_mean, r_max)
+        re.append(re1)
+        ri.append(ri1)
+    re = np.hstack(re)
+    ri = np.hstack(ri)
+    if (N_e-len(re[0])<=p) and (N_e-len(re[0])>0):
+        for i in range(N_e-len(re[0])+1):
+            for j in range(len(re)):
+                np.append(re[j], 0.0)
+    elif N_e-len(re[0])>p:
+        raise ValueError("something wrong")
+    else:
+        pass
+
+    if (N_i-len(ri[0])<=p) and (N_i-len(ri[0])>0):
+        for i in range(N_i-len(ri[0])+1):
+            for j in range(len(ri)):
+                np.append(ri[j], 0.0)
+    elif N_i-len(ri[0])>p:
+        raise ValueError("something wrong")
+    else:
+        pass
+
+    label = np.arange(p)
+    num = len(list(permutations(label)))
+
+    for j in range(num):
+        rates_e.append(re[0])
+        rates_i.append(ri[0])
+    return rates_e, rates_i
+
+
+def assoc_seqs_time_sequence(p, N_e, N_i, T0, T, n, deltaT = 20):
+    """Create sequences for time sequence discrimination task.
+
+    Parameters
+    ----------
+    p : int
+        total number of features (num = p!, for p patterns per feature)
+    N_e, N_i : int
+        number of excitatory and inhibitory synapses
+    T0, T : int
+        initial and final times
+    delta_T: int
+        time interval between two features
+    n : int
+        number of precisely timed events per active synapse
+
+    Returns
+    -------
+    S_e, S_i : list
+        sets of E and I event/spike times
+    """
+    S_e = []
+    S_i = []
+    label = np.arange(p)
+    num = len(list(permutations(label)))
+    n_e1 = int(N_e/p)
+    n_i1 = int(N_i/p)
+
+    permutation_label = list(permutations(label))
+    for j, order in enumerate(permutation_label):
+        se = []
+        si = []
+        for i in range(p):
+            se1, si1 = build_seqs(p, n_e1, n_i1, T0+deltaT*order[i], T + deltaT*order[i], n)
+            se.append(se1)
+            si.append(si1)
+        se = np.hstack(se)
+        si = np.hstack(si)
+
+        if (N_e - len(se[0]) <= p) and (N_e - len(se[0]) > 0):
+            for i in range(N_e - len(se[0])+1):
+                for j in range(len(se)):
+                    se[j].append(np.asarray([]))
+        elif N_e - len(se[0]) > p:
+            raise ValueError("something wrong")
+        else:
+            pass
+
+        if (N_i - len(si[0]) <= p) and (N_i - len(si[0]) > 0):
+            for i in range(N_i - len(si[0])+1):
+                for j in range(len(si)):
+                    si[j].append(np.asarray([]))
+        elif N_i - len(si[0]) > p:
+            raise ValueError("something wrong")
+        else:
+            pass
+        s_e = []
+        s_i = []
+        for i in range(len(se[0])):
+            s_e.append(np.asarray([]))
+            for k in order:
+                s_e[i] = np.append(s_e[i], se[k][i])
+        for i in range(len(si[0])):
+            s_i.append(np.asarray([]))
+            for k in order:
+                s_i[i] = np.append(s_i[i], si[k][i])
+
+        S_e.append(np.asarray(s_e))
+        S_i.append(np.asarray(s_i))
+    return S_e, S_i
 
 def superimpose(S_1, S_2):
     """Combine two sequences and sort.
