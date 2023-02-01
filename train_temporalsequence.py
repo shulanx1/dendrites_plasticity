@@ -23,7 +23,7 @@ model = 'act'			 	# act, pas, pn
 input = 'opt'				# rate, temp, opt
 num_patterns = 2
 seed = 1		 			# random seed
-model_file = wd + '\\outputs\\example_time_sequence_10ms'  # for saving output
+model_file = wd + '\\outputs\\example_time_sequence_5ms'  # for saving output
 path = wd + '\\outputs'
 if not os.path.exists(path):
     os.makedirs(path)
@@ -50,7 +50,7 @@ alpha0 = 2*1e-6/r_max 					# initial learning rate
 alpha_d = 1/125							# learning rate decay constant
 w_jitter = 0.5							# perturbation to initial weights
 jitter = 2.5							# stdev of spike time jitter (ms)
-deltaT = 10.
+deltaT = 5.
 
 
 def init_input_timesequence(P, num_patterns, stim_on, stim_dur, r_mean, r_max, num_t, s, deltaT = 20):
@@ -194,7 +194,7 @@ W_I = [np.array(w_i)]
 
 ### Test inital Model ####
 wd = "C:\\work\\Code\\Dendrites_plasticity"
-test_file_init = wd + "\\outputs\\test_init_10ms"
+test_file_init = wd + "\\outputs\\test_init_5ms"
 h('forall pop_section()')
 h('forall delete_section()')
 reps = 10
@@ -243,7 +243,7 @@ if save_output:
 
 
 ### Test Trained Model ####
-test_file = wd + "\\outputs\\test_trained_timesequence_10ms"
+test_file = wd + "\\outputs\\test_trained_timesequence_5ms"
 h('forall pop_section()')
 h('forall delete_section()')
 reps = 5

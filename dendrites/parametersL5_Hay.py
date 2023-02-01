@@ -12,7 +12,8 @@ def init_params(wd):
     """ Create dictionary of model parameters """
     neuron.load_mechanisms(wd + "\\mod")
     neuron.load_mechanisms(wd + "\\mod_files")
-    neuron.load_mechanisms("C:\\work\\Code\\neuron-l5pn-model\\mod_Gao2020")
+    neuron.load_mechanisms(wd + "\\mod_Gao2020")
+    neuron.load_mechanisms(wd + "\\mod_stochastic")
     param_file = wd + "\\input\\biophys4.json"
 
     f = open(param_file)
@@ -23,6 +24,8 @@ def init_params(wd):
     conditions = data['conditions'][0]
 
     tree = wd + '\\input\\cell1.asc'
+    if_stochastic = True
+    stochastic_channel = ['na', 'K_Tst', 'NaTs2_t', 'K_Pst', 'Nap_Et2', 'NaTa_t_2F']
     N_e = 1600  # number of excitatory synapses
     N_i = 400  # number of inhibitory synapses
     soma = [0]
@@ -94,6 +97,8 @@ def init_params(wd):
          # 'g_k_d': g_k_d,
          # 'g_km_d': g_km_d,
          # 'g_Ih_d': g_Ih_d,
+         'if_stochastic': if_stochastic,
+         'stochastic_channel': stochastic_channel,
          'v_th': v_th,
          't_max': t_max,
          'active_d': active_d,

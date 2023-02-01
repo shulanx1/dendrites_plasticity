@@ -287,11 +287,18 @@ class NModel:
             if 'data' not in P:
                 f = open(P["param_file"])
                 P['data'] = json.load(f)
+            if 'if_stochastic' not in P:
+                self.if_stochastic = False
+            else:
+                self.if_stochastic = P['if_stochastic']
             self.data = P['data']
             self.insert_active_jsonfile()
             self.insert_active_gradient()
             if P['active_d']:
-                self.insert_active_basal_L5()
+                if self.if_stochastic:
+                    self.insert_active_basal_stochastic()
+                else:
+                    self.insert_active_basal_L5()
         self.AMPA = self.attach_ampa(self.sec_e)
         self.GABA = self.attach_gaba(self.sec_i)
         if P['active_n']:
@@ -799,6 +806,12 @@ class NModel:
         passive = self.data['passive'][0]
         genome = self.data['genome']
         conditions = self.data['conditions'][0]
+        if 'if_stochastic' not in self.P:
+            if_stochastic = False
+            stochastic_channel = []
+        else:
+            if_stochastic = self.P['if_stochastic']
+            stochastic_channel = self.P['stochastic_channel']
 
         # Set fixed passive properties
         for sec in h.allsec():
@@ -854,13 +867,45 @@ class NModel:
                 if mechanism != "":
                     for sec in h.allsec():
                         if sec.name()[0:4] in section_array:
-                            if h.ismembrane(str(mechanism),
-                                            sec=sec) != 1:
-                                sec.insert(str(mechanism))
-                                if self.verbool:
-                                    print('Adding mechanism %s to %s'
-                                          % (mechanism, sec.name()))
-                            setattr(sec, param_name + "_" + mechanism, param_value)
+                            if not if_stochastic:
+                                if h.ismembrane(str(mechanism),
+                                                sec=sec) != 1:
+                                    sec.insert(str(mechanism))
+                                    if self.verbool:
+                                        print('Adding mechanism %s to %s'
+                                              % (mechanism, sec.name()))
+                                setattr(sec, param_name + "_" + mechanism, param_value)
+                            else:
+                                if str(mechanism) in stochastic_channel:
+                                    mechanism = mechanism + '_2F'
+                                    if h.ismembrane(str(mechanism),
+                                                    sec=sec) != 1:
+                                        sec.insert(str(mechanism))
+                                        if self.verbool:
+                                            print('Adding mechanism %s to %s'
+                                                  % (mechanism, sec.name()))
+                                    setattr(sec, param_name + "_" + mechanism, param_value)
+                                    N_name = 'N' + mechanism[0:-3]
+                                    if mechanism in ['NaTs2_t_2F', 'NaTa_t_2F']:
+                                        N = np.round(
+                                            param_value * np.sum(self.area[self.get_idx(sec.name())]) * 100 / 5)
+                                    else:
+                                        N = np.round(
+                                            param_value * np.sum(self.area[self.get_idx(sec.name())]) * 100 / 40)
+                                    # assume that each channel has conductance of 10pS
+                                    setattr(sec, N_name + '_' + mechanism, N)
+                                    if self.verbool:
+                                        print('Changing num of channel in mechanism %s in %s to %d'
+                                              % (mechanism, sec.name(), N))
+                                else:
+                                    if h.ismembrane(str(mechanism),
+                                                    sec=sec) != 1:
+                                        sec.insert(str(mechanism))
+                                        if self.verbool:
+                                            print('Adding mechanism %s to %s'
+                                                  % (mechanism, sec.name()))
+                                    setattr(sec, param_name + "_" + mechanism, param_value)
+
                 else:
                     for sec in h.allsec():
                         if sec.name()[0:4] in section_array:
