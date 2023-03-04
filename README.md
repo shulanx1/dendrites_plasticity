@@ -1,6 +1,6 @@
 # Dendrites
 
-Code associated with the paper "Bicknell B.A. & HÃ¤usser M., (2021). A synaptic learning rule for exploiting nonlinear dendritic computation", modified to run on L5 PN models
+Code modified from the paper "Bicknell B.A. & Häusser M., (2021). A synaptic learning rule for exploiting nonlinear dendritic computation", modified to run on L5 PN models
 
 Requirements
 -----------------
