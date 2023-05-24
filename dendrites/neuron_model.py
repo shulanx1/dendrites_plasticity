@@ -287,11 +287,18 @@ class NModel:
             if 'data' not in P:
                 f = open(P["param_file"])
                 P['data'] = json.load(f)
+            if 'if_stochastic' not in P:
+                self.if_stochastic = False
+            else:
+                self.if_stochastic = P['if_stochastic']
             self.data = P['data']
             self.insert_active_jsonfile()
             self.insert_active_gradient()
             if P['active_d']:
-                self.insert_active_basal_L5()
+                if self.if_stochastic:
+                    self.insert_active_basal_stochastic()
+                else:
+                    self.insert_active_basal_L5()
         self.AMPA = self.attach_ampa(self.sec_e)
         self.GABA = self.attach_gaba(self.sec_i)
         if P['active_n']:
@@ -334,7 +341,7 @@ class NModel:
             branch types (basal/apical/soma) for all synapses
         """
         P = self.P
-        N_e, N_i, l_seg, locs_e, locs_i, branch_ids = \
+        N_e, N_i, l_seg, locs_e_p, locs_i_p, branch_ids = \
         (P['N_e'], P['N_i'], P['l_seg'], P['locs_e'], P['locs_i'],
         [P['basal'], P['oblique'], P['apical']])
         A, L, a, sec_points, secs, basal, apical, trunk, axon = morphology.reconstruction(P['tree'])
@@ -344,10 +351,28 @@ class NModel:
         dseg = L[secs]//(l_seg*1e-4)+1
         dseg[dseg == 1] = 2
         nseg[secs] = dseg
-        locs_e = np.array(
-            basal + trunk + apical)  # location of excitatory synapses
-        locs_i = np.array(
-            basal + trunk + apical)  # location of inhibitory synapses
+        # locs_e = np.array(
+        #     basal + trunk + apical)  # location of excitatory synapses
+        # locs_i = np.array(
+        #     basal + trunk + apical)  # location of inhibitory synapses
+        # locs_e = np.asarray(basal)
+        # locs_i = np.asarray(basal)
+        locs_e = []
+        locs_i = []
+        if 'basal' in locs_e_p:
+            locs_e = locs_e + basal
+        if 'trunk' in locs_e_p:
+            locs_e = locs_e + trunk
+        if 'apical' in locs_e_p:
+            locs_e = locs_e + apical
+        if 'basal' in locs_i_p:
+            locs_i = locs_i + basal
+        if 'trunk' in locs_i_p:
+            locs_i = locs_i + trunk
+        if 'apical' in locs_i_p:
+            locs_i = locs_i + apical
+        locs_e = np.asarray(locs_e)
+        locs_i = np.asarray(locs_i)
         sec_e = morphology.synapse_locations_rand(locs_e, N_e, nseg[locs_e], 0)
         sec_i = morphology.synapse_locations_rand(locs_i, N_i, nseg[locs_i], 0)
         b_type_e = morphology.branch_type(sec_e, branch_ids)
@@ -799,6 +824,12 @@ class NModel:
         passive = self.data['passive'][0]
         genome = self.data['genome']
         conditions = self.data['conditions'][0]
+        if 'if_stochastic' not in self.P:
+            if_stochastic = False
+            stochastic_channel = []
+        else:
+            if_stochastic = self.P['if_stochastic']
+            stochastic_channel = self.P['stochastic_channel']
 
         # Set fixed passive properties
         for sec in h.allsec():
@@ -854,13 +885,45 @@ class NModel:
                 if mechanism != "":
                     for sec in h.allsec():
                         if sec.name()[0:4] in section_array:
-                            if h.ismembrane(str(mechanism),
-                                            sec=sec) != 1:
-                                sec.insert(str(mechanism))
-                                if self.verbool:
-                                    print('Adding mechanism %s to %s'
-                                          % (mechanism, sec.name()))
-                            setattr(sec, param_name + "_" + mechanism, param_value)
+                            if not if_stochastic:
+                                if h.ismembrane(str(mechanism),
+                                                sec=sec) != 1:
+                                    sec.insert(str(mechanism))
+                                    if self.verbool:
+                                        print('Adding mechanism %s to %s'
+                                              % (mechanism, sec.name()))
+                                setattr(sec, param_name + "_" + mechanism, param_value)
+                            else:
+                                if str(mechanism) in stochastic_channel:
+                                    mechanism = mechanism + '_2F'
+                                    if h.ismembrane(str(mechanism),
+                                                    sec=sec) != 1:
+                                        sec.insert(str(mechanism))
+                                        if self.verbool:
+                                            print('Adding mechanism %s to %s'
+                                                  % (mechanism, sec.name()))
+                                    setattr(sec, param_name + "_" + mechanism, param_value)
+                                    N_name = 'N' + mechanism[0:-3]
+                                    if mechanism in ['NaTs2_t_2F', 'NaTa_t_2F']:
+                                        N = np.round(
+                                            param_value * np.sum(self.area[self.get_idx(sec.name())]) * 100 / 5)
+                                    else:
+                                        N = np.round(
+                                            param_value * np.sum(self.area[self.get_idx(sec.name())]) * 100 / 40)
+                                    # assume that each channel has conductance of 10pS
+                                    setattr(sec, N_name + '_' + mechanism, N)
+                                    if self.verbool:
+                                        print('Changing num of channel in mechanism %s in %s to %d'
+                                              % (mechanism, sec.name(), N))
+                                else:
+                                    if h.ismembrane(str(mechanism),
+                                                    sec=sec) != 1:
+                                        sec.insert(str(mechanism))
+                                        if self.verbool:
+                                            print('Adding mechanism %s to %s'
+                                                  % (mechanism, sec.name()))
+                                    setattr(sec, param_name + "_" + mechanism, param_value)
+
                 else:
                     for sec in h.allsec():
                         if sec.name()[0:4] in section_array:
@@ -1258,6 +1321,55 @@ class NModel:
             dend.ena = self.P['E_na']
             dend.insert('Ih')
             dend.gIhbar_Ih = self.P['g_Ih_d'] * 1e-3  # S/cm^2
+
+    def set_deficit_NMDA(self, sec_name = 'all', percentage = 0.0):
+        if sec_name == 'all':
+            self.w_1 = self.sec_e.shape[1] * [self.P['g_max_A']]
+            self.w_2 = self.sec_e.shape[1] * [percentage*self.P['g_max_N']]
+            self.w_3 = self.sec_i.shape[1] * [self.P['g_max_G']]
+        else:
+            r_na = self.sec_e.shape[1] * [self.r_na]
+            for i, s in enumerate(self.NMDA_meta):
+                if sec_name in s['sec_name']:
+                    self.w_2[i] = percentage*self.P['g_max_N']
+                    r_na[i] = percentage*r_na[i]
+            self.r_na = r_na
+
+    def set_deficite_channels(self, mec_name, sec_name = 'all',  percentage = 0.3):
+        """
+
+        set conductance of certain channel to a certain percentage of original channel
+        :param mec_name:
+        :param prop_name:
+        :param sec_name:
+        :param percentage:
+        :return:
+        """
+        prop_name = 'g' + mec_name + 'bar'
+        if sec_name == 'all':
+            for sec in self.allseclist:
+                for seg in sec:
+                    try:
+                        seg_mec = getattr(seg, str(mec_name))
+                        current_value = getattr(seg_mec, prop_name)
+                        setattr(seg_mec, prop_name, current_value*percentage)
+                        if self.verbool:
+                            print('change %s in %s from %.6g to %.6g' %(prop_name, sec.name(), current_value, current_value*percentage))
+                    except AttributeError:
+                        pass
+        else:
+            for sec in self.allseclist:
+                if sec.name()[0:4] in sec_name:
+                    for seg in sec:
+                        try:
+                            seg_mec = getattr(seg, str(mec_name))
+                            current_value = getattr(seg_mec, prop_name)
+                            setattr(seg_mec, prop_name, current_value * percentage)
+                            if self.verbool:
+                                print('change %s in %s from %.6g to %.6g' % (
+                                prop_name, sec.name(), current_value, current_value * percentage))
+                        except AttributeError:
+                            pass
 
     def set_weights(self, w_e, w_i):
         """Assign AMPA and NMDA weights with ratio r_n, and GABA weights.

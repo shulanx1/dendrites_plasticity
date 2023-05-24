@@ -55,7 +55,8 @@ def raster_params(cell):
         boundaries.append(index[position])
     i_positions = []
     for k in range(P['N_i']):
-        i_positions.append(np.where(cell.seg_e == cell.seg_i[k])[0][0])
+        if len(np.where(cell.seg_e == cell.seg_i[k])[0])>0:
+            i_positions.append(np.where(cell.seg_e == cell.seg_i[k])[0][0])
     return i_positions, index, boundaries
 
 

@@ -12,7 +12,8 @@ def init_params(wd):
     """ Create dictionary of model parameters """
     neuron.load_mechanisms(wd + "\\mod")
     neuron.load_mechanisms(wd + "\\mod_files")
-    neuron.load_mechanisms("C:\\work\\Code\\neuron-l5pn-model\\mod_Gao2020")
+    neuron.load_mechanisms(wd + "\\mod_Gao2020")
+    neuron.load_mechanisms(wd + "\\mod_stochastic")
     param_file = wd + "\\input\\biophys4.json"
 
     f = open(param_file)
@@ -23,6 +24,8 @@ def init_params(wd):
     conditions = data['conditions'][0]
 
     tree = wd + '\\input\\cell1.asc'
+    if_stochastic = False
+    stochastic_channel = ['na', 'K_Tst', 'NaTs2_t', 'K_Pst', 'Nap_Et2', 'NaTa_t_2F']
     N_e = 1200  # number of excitatory synapses
     N_i = 300  # number of inhibitory synapses
     soma = [0]
@@ -30,15 +33,13 @@ def init_params(wd):
     oblique = list(np.asarray([4,5,6,7,8,9,10,11,12,13,15,16,17,18,19,21,22,23,24,25,27,28,29,30,31,32,33,35])+87)
     apical = np.asarray([0,1,2,3,14,20,26,34,36])+87
     apical = list(np.concatenate((apical,np.arange(37,109)+87), axis=None))
-    locs_e = np.array(
-        basal + oblique + apical)  # location of excitatory synapses
-    locs_i = np.array(
-        basal + oblique + apical)  # location of inhibitory synapses
+    locs_e = ['basal', 'trunk', 'apical']  # location of excitatory synapses
+    locs_i = ['basal', 'trunk', 'apical']  # location of inhibitory synapses
     l_seg = 10  # maximum segment size (um)
     c_m = 1  # somatic specific capacitance (uF/cm^2)
     c_m_d = 2    # dendritic specific capacitance (uF/cm^2)
     R_a = passive['ra'] * 1e-3  # axial resistivity (k ohm cm)
-    tau_m = 10. # membrane time constant (ms)
+    tau_m = 33.33 # membrane time constant (ms)
     E_r = passive["e_pas"]  # resting/leak reversal potential (mv)
     E_e = 0.  # excitatory reversal potential (mv)
     E_i = -80.  # inhibitory reversal potential (mv)
@@ -54,7 +55,7 @@ def init_params(wd):
     E_hcn = -45. # HCN reversal potential (mV)
     v_th = -55.  # Traub and Miles threshold parameter (mV)
     t_max = 0.2e3  # slow K adaptation time scale (ms)
-    active_d = True  # active or passive dendrites
+    active_d = False  # active or passive dendrites
     active_n = True  # active or passive NMDA receptors
 
     P = {'tree': tree,
@@ -94,6 +95,8 @@ def init_params(wd):
          # 'g_k_d': g_k_d,
          # 'g_km_d': g_km_d,
          # 'g_Ih_d': g_Ih_d,
+         'if_stochastic': if_stochastic,
+         'stochastic_channel': stochastic_channel,
          'v_th': v_th,
          't_max': t_max,
          'active_d': active_d,

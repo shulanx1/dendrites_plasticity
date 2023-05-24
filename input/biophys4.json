@@ -178,6 +178,18 @@
       "value": 0.000637,
       "mechanism": "CaDynamics_E2"
     },
+	{
+      "section": "dend",
+      "name": "decay",
+      "value": 35.725651,
+      "mechanism": "CaDynamics_E2"
+    }, 
+    {
+      "section": "dend",
+      "name": "gamma",
+      "value": 0.000637,
+      "mechanism": "CaDynamics_E2"
+    },
     {
       "section": "dend",
       "name": "gIhbar",
