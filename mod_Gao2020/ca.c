@@ -1,4 +1,4 @@
-/* Created by Language version: 7.5.0 */
+/* Created by Language version: 7.7.0 */
 /* NOT VECTORIZED */
 #define NRN_VECTORIZED 0
 #include <stdio.h>
@@ -90,6 +90,15 @@ extern void hoc_register_limits(int, HocParmLimits*);
 extern void hoc_register_units(int, HocParmUnits*);
 extern void nrn_promote(Prop*, int, int);
 extern Memb_func* memb_func;
+ 
+#define NMODL_TEXT 1
+#if NMODL_TEXT
+static const char* nmodl_file_text;
+static const char* nmodl_filename;
+extern void hoc_reg_nmodl_text(int, const char*);
+extern void hoc_reg_nmodl_filename(int, const char*);
+#endif
+
  extern void _nrn_setdata_reg(int, void(*)(Prop*));
  static void _setdata(Prop* _prop) {
  _p = _prop->param; _ppvar = _prop->dparam;
@@ -183,7 +192,7 @@ static void _ode_matsol(_NrnThread*, _Memb_list*, int);
  static void _ode_matsol_instance1(_threadargsproto_);
  /* connect range variables in _p that hoc is supposed to know about */
  static const char *_mechanism[] = {
- "7.5.0",
+ "7.7.0",
 "ca",
  "gbar_ca",
  0,
@@ -241,6 +250,10 @@ extern void _cvode_abstol( Symbol**, double*, int);
  _mechtype = nrn_get_mechtype(_mechanism[1]);
      _nrn_setdata_reg(_mechtype, _setdata);
      _nrn_thread_reg(_mechtype, 2, _update_ion_pointer);
+ #if NMODL_TEXT
+  hoc_reg_nmodl_text(_mechtype, nmodl_file_text);
+  hoc_reg_nmodl_filename(_mechtype, nmodl_filename);
+#endif
   hoc_register_prop_size(_mechtype, 13, 4);
   hoc_register_dparam_semantics(_mechtype, 0, "ca_ion");
   hoc_register_dparam_semantics(_mechtype, 1, "ca_ion");
@@ -249,7 +262,7 @@ extern void _cvode_abstol( Symbol**, double*, int);
  	hoc_register_cvode(_mechtype, _ode_count, _ode_map, _ode_spec, _ode_matsol);
  	hoc_register_tolerance(_mechtype, _hoc_state_tol, &_atollist);
  	hoc_register_var(hoc_scdoub, hoc_vdoub, hoc_intfunc);
- 	ivoc_help("help ?1 ca C:/work/Code/neuron-l5pn-model/mod_Gao2020/ca.mod\n");
+ 	ivoc_help("help ?1 ca E:/Code/dendrites_pasticity/mod_Gao2020/ca.mod\n");
  hoc_register_limits(_mechtype, _hoc_parm_limits);
  hoc_register_units(_mechtype, _hoc_parm_units);
  }
@@ -608,3 +621,148 @@ static void _initlists() {
    _t_htau = makevector(200*sizeof(double));
 _first = 0;
 }
+
+#if NMODL_TEXT
+static const char* nmodl_filename = "ca.mod";
+static const char* nmodl_file_text = 
+  "\n"
+  "COMMENT\n"
+  "26 Ago 2002 Modification of original channel to allow variable time step and to correct an initialization error.\n"
+  "    Done by Michael Hines(michael.hines@yale.e) and Ruggero Scorcioni(rscorcio@gmu.edu) at EU Advance Course in Computational Neuroscience. Obidos, Portugal\n"
+  "\n"
+  "ca.mod\n"
+  "Uses fixed eca instead of GHK eqn\n"
+  "\n"
+  "HVA Ca current\n"
+  "Based on Reuveni, Friedman, Amitai and Gutnick (1993) J. Neurosci. 13:\n"
+  "4609-4621.\n"
+  "\n"
+  "Author: Zach Mainen, Salk Institute, 1994, zach@salk.edu\n"
+  "\n"
+  "ENDCOMMENT\n"
+  "\n"
+  "INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}\n"
+  "\n"
+  "NEURON {\n"
+  "	SUFFIX ca\n"
+  "	USEION ca READ eca WRITE ica\n"
+  "	RANGE m, h, gca, gbar\n"
+  "	RANGE minf, hinf, mtau, htau\n"
+  "	GLOBAL q10, temp, tadj, vmin, vmax, vshift\n"
+  "}\n"
+  "\n"
+  "PARAMETER {\n"
+  "	gbar = 0.1   	(pS/um2)	: 0.12 mho/cm2\n"
+  "	vshift = 0	(mV)		: voltage shift (affects all)\n"
+  "\n"
+  "	cao  = 2.5	(mM)	        : external ca concentration\n"
+  "	cai		(mM)\n"
+  "						\n"
+  "	temp = 23	(degC)		: original temp \n"
+  "	q10  = 2.3			: temperature sensitivity\n"
+  "\n"
+  "	v 		(mV)\n"
+  "	dt		(ms)\n"
+  "	celsius		(degC)\n"
+  "	vmin = -120	(mV)\n"
+  "	vmax = 100	(mV)\n"
+  "}\n"
+  "\n"
+  "\n"
+  "UNITS {\n"
+  "	(mA) = (milliamp)\n"
+  "	(mV) = (millivolt)\n"
+  "	(pS) = (picosiemens)\n"
+  "	(um) = (micron)\n"
+  "	FARADAY = (faraday) (coulomb)\n"
+  "	R = (k-mole) (joule/degC)\n"
+  "	PI	= (pi) (1)\n"
+  "} \n"
+  "\n"
+  "ASSIGNED {\n"
+  "	ica 		(mA/cm2)\n"
+  "	gca		(pS/um2)\n"
+  "	eca		(mV)\n"
+  "	minf 		hinf\n"
+  "	mtau (ms)	htau (ms)\n"
+  "	tadj\n"
+  "}\n"
+  " \n"
+  "\n"
+  "STATE { m h }\n"
+  "\n"
+  "INITIAL { \n"
+  "	trates(v+vshift)\n"
+  "	m = minf\n"
+  "	h = hinf\n"
+  "}\n"
+  "\n"
+  "BREAKPOINT {\n"
+  "        SOLVE states METHOD cnexp\n"
+  "        gca = tadj*gbar*m*m*h\n"
+  "	ica = (1e-4) * gca * (v - eca)\n"
+  "} \n"
+  "\n"
+  "LOCAL mexp, hexp\n"
+  "\n"
+  ":PROCEDURE states() {\n"
+  ":        trates(v+vshift)      \n"
+  ":        m = m + mexp*(minf-m)\n"
+  ":        h = h + hexp*(hinf-h)\n"
+  ":	VERBATIM\n"
+  ":	return 0;\n"
+  ":	ENDVERBATIM\n"
+  ":}\n"
+  "\n"
+  "DERIVATIVE states {\n"
+  "        trates(v+vshift)      \n"
+  "        m' =  (minf-m)/mtau\n"
+  "        h' =  (hinf-h)/htau\n"
+  "}\n"
+  "\n"
+  "PROCEDURE trates(v) {  \n"
+  "                      \n"
+  "        \n"
+  "        TABLE minf, hinf, mtau, htau \n"
+  "	DEPEND  celsius, temp\n"
+  "	\n"
+  "	FROM vmin TO vmax WITH 199\n"
+  "\n"
+  "	rates(v): not consistently executed from here if usetable == 1\n"
+  "\n"
+  ":        tinc = -dt * tadj\n"
+  "\n"
+  ":        mexp = 1 - exp(tinc/mtau)\n"
+  ":        hexp = 1 - exp(tinc/htau)\n"
+  "}\n"
+  "\n"
+  "\n"
+  "PROCEDURE rates(vm) {  \n"
+  "        LOCAL  a, b\n"
+  "\n"
+  "        tadj = q10^((celsius - temp)/10)\n"
+  "\n"
+  "	a = 0.055*(-27 - vm)/(exp((-27-vm)/3.8) - 1)\n"
+  "	b = 0.94*exp((-75-vm)/17)\n"
+  "	\n"
+  "	mtau = 1/tadj/(a+b)\n"
+  "	minf = a/(a+b)\n"
+  "\n"
+  "		:\"h\" inactivation \n"
+  "\n"
+  "	a = 0.000457*exp((-13-vm)/50)\n"
+  "	b = 0.0065/(exp((-vm-15)/28) + 1)\n"
+  "\n"
+  "	htau = 1/tadj/(a+b)\n"
+  "	hinf = a/(a+b)\n"
+  "}\n"
+  "\n"
+  "FUNCTION efun(z) {\n"
+  "	if (fabs(z) < 1e-4) {\n"
+  "		efun = 1 - z/2\n"
+  "	}else{\n"
+  "		efun = z/(exp(z) - 1)\n"
+  "	}\n"
+  "}\n"
+  ;
+#endif

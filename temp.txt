@@ -1,0 +1,29 @@
+cell.dt = 0.1
+[V,rates_e, rates_i, S_e_all, S_i_all, Labels, t] = pickle.load(open(wd + '\\outputs\\test_initial_fullbranch','rb'))
+[ims, fig] = visualization.plot_syn_Vm(V, t, cell, wd, rates_e, rates_i, S_e_all, S_i_all, w_e, w_i, rep_plot = 1, sparse_plot = 10, time_range = None, if_save=True)
+
+
+import scipy.io as sio
+data = sio.loadmat('E:\\data\\uncaging\\multi cluster cooperation\\pooled data\\L5\\new\\highcond_decode_example.mat')
+label = data['label']
+T = data['T_s']
+V = data['Vm_s']
+stim_start = data['stim_start1']
+T = T.reshape([410000,])
+V = V.reshape([410000,])
+label = label.reshape([20,])
+stim_start = stim_start.reshape([20,])
+
+
+im_file = 'E:\\data\\uncaging\\multi cluster cooperation\\112222\\cell4\\clust&bkg_color.tif'
+data = sio.loadmat('E:\\data\\uncaging\\multi cluster cooperation\\pooled data\\L5\\new\\cluster_bkg_stim_example_112222_cell4_2.mat')
+V = data['Vm_single'].reshape(data['Vm_single'].shape[0])
+T = data['T'].reshape(data['T'].shape[1])
+x_coor = data['x_coor'].reshape(data['x_coor'].shape[0])
+y_coor = data['y_coor'].reshape(data['y_coor'].shape[0])
+stim_start = data['stim_start1'].reshape(data['stim_start1'].shape[0])
+
+plt.plot(gates[0:1, 1,:].reshape((2, 2001)).T)
+plt.xlim([0,1184])
+plt.plot(v[800])
+plt.plot(v[0])

@@ -1,4 +1,4 @@
-/* Created by Language version: 7.5.0 */
+/* Created by Language version: 7.7.0 */
 /* VECTORIZED */
 #define NRN_VECTORIZED 1
 #include <stdio.h>
@@ -72,6 +72,15 @@ extern void hoc_register_limits(int, HocParmLimits*);
 extern void hoc_register_units(int, HocParmUnits*);
 extern void nrn_promote(Prop*, int, int);
 extern Memb_func* memb_func;
+ 
+#define NMODL_TEXT 1
+#if NMODL_TEXT
+static const char* nmodl_file_text;
+static const char* nmodl_filename;
+extern void hoc_reg_nmodl_text(int, const char*);
+extern void hoc_reg_nmodl_filename(int, const char*);
+#endif
+
  extern void _nrn_setdata_reg(int, void(*)(Prop*));
  static void _setdata(Prop* _prop) {
  _extcall_prop = _prop;
@@ -112,7 +121,7 @@ static void nrn_state(_NrnThread*, _Memb_list*, int);
 static void  nrn_jacob(_NrnThread*, _Memb_list*, int);
  /* connect range variables in _p that hoc is supposed to know about */
  static const char *_mechanism[] = {
- "7.5.0",
+ "7.7.0",
 "vmax",
  0,
  "vm_vmax",
@@ -145,9 +154,13 @@ extern void _cvode_abstol( Symbol**, double*, int);
  	register_mech(_mechanism, nrn_alloc,nrn_cur, nrn_jacob, nrn_state, nrn_init, hoc_nrnpointerindex, 1);
  _mechtype = nrn_get_mechtype(_mechanism[1]);
      _nrn_setdata_reg(_mechtype, _setdata);
+ #if NMODL_TEXT
+  hoc_reg_nmodl_text(_mechtype, nmodl_file_text);
+  hoc_reg_nmodl_filename(_mechtype, nmodl_filename);
+#endif
   hoc_register_prop_size(_mechtype, 4, 0);
  	hoc_register_var(hoc_scdoub, hoc_vdoub, hoc_intfunc);
- 	ivoc_help("help ?1 vmax C:/work/Code/neuron-l5pn-model/mod_Gao2020/vmax.mod\n");
+ 	ivoc_help("help ?1 vmax E:/Code/dendrites_pasticity/mod_Gao2020/vmax.mod\n");
  hoc_register_limits(_mechtype, _hoc_parm_limits);
  hoc_register_units(_mechtype, _hoc_parm_units);
  }
@@ -288,4 +301,32 @@ _first = 0;
 
 #if defined(__cplusplus)
 } /* extern "C" */
+#endif
+
+#if NMODL_TEXT
+static const char* nmodl_filename = "vmax.mod";
+static const char* nmodl_file_text = 
+  "NEURON {\n"
+  "   SUFFIX vmax\n"
+  "   RANGE vm, tpeak\n"
+  "}\n"
+  "\n"
+  "ASSIGNED {\n"
+  "   v (millivolt)\n"
+  "   vm (millivolt)\n"
+  "   tpeak (ms)\n"
+  "}\n"
+  "\n"
+  "INITIAL {\n"
+  "    vm = v\n"
+  "    tpeak = t\n"
+  "}\n"
+  "\n"
+  "BREAKPOINT { \n"
+  "   if (v>vm) { \n"
+  "      vm=v\n"
+  "      tpeak=t \n"
+  "   }\n"
+  "}\n"
+  ;
 #endif

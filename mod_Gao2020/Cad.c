@@ -1,4 +1,4 @@
-/* Created by Language version: 7.5.0 */
+/* Created by Language version: 7.7.0 */
 /* NOT VECTORIZED */
 #define NRN_VECTORIZED 0
 #include <stdio.h>
@@ -77,6 +77,15 @@ extern void hoc_register_limits(int, HocParmLimits*);
 extern void hoc_register_units(int, HocParmUnits*);
 extern void nrn_promote(Prop*, int, int);
 extern Memb_func* memb_func;
+ 
+#define NMODL_TEXT 1
+#if NMODL_TEXT
+static const char* nmodl_file_text;
+static const char* nmodl_filename;
+extern void hoc_reg_nmodl_text(int, const char*);
+extern void hoc_reg_nmodl_filename(int, const char*);
+#endif
+
  extern void _nrn_setdata_reg(int, void(*)(Prop*));
  static void _setdata(Prop* _prop) {
  _p = _prop->param; _ppvar = _prop->dparam;
@@ -147,7 +156,7 @@ static void _ode_matsol(_NrnThread*, _Memb_list*, int);
  static void _ode_matsol_instance1(_threadargsproto_);
  /* connect range variables in _p that hoc is supposed to know about */
  static const char *_mechanism[] = {
- "7.5.0",
+ "7.7.0",
 "cad",
  0,
  0,
@@ -203,6 +212,10 @@ extern void _cvode_abstol( Symbol**, double*, int);
  _mechtype = nrn_get_mechtype(_mechanism[1]);
      _nrn_setdata_reg(_mechtype, _setdata);
      _nrn_thread_reg(_mechtype, 2, _update_ion_pointer);
+ #if NMODL_TEXT
+  hoc_reg_nmodl_text(_mechtype, nmodl_file_text);
+  hoc_reg_nmodl_filename(_mechtype, nmodl_filename);
+#endif
   hoc_register_prop_size(_mechtype, 6, 5);
   hoc_register_dparam_semantics(_mechtype, 0, "ca_ion");
   hoc_register_dparam_semantics(_mechtype, 1, "ca_ion");
@@ -214,7 +227,7 @@ extern void _cvode_abstol( Symbol**, double*, int);
  	hoc_register_tolerance(_mechtype, _hoc_state_tol, &_atollist);
  	hoc_register_synonym(_mechtype, _ode_synonym);
  	hoc_register_var(hoc_scdoub, hoc_vdoub, hoc_intfunc);
- 	ivoc_help("help ?1 cad C:/work/Code/neuron-l5pn-model/mod_Gao2020/Cad.mod\n");
+ 	ivoc_help("help ?1 cad E:/Code/dendrites_pasticity/mod_Gao2020/Cad.mod\n");
  hoc_register_limits(_mechtype, _hoc_parm_limits);
  hoc_register_units(_mechtype, _hoc_parm_units);
  }
@@ -461,3 +474,86 @@ static void _initlists() {
  _slist1[0] = &(ca) - _p;  _dlist1[0] = &(Dca) - _p;
 _first = 0;
 }
+
+#if NMODL_TEXT
+static const char* nmodl_filename = "Cad.mod";
+static const char* nmodl_file_text = 
+  "\n"
+  "TITLE decay of internal calcium concentration\n"
+  ":\n"
+  ": Internal calcium concentration calculated from calcium currents\n"
+  ": and buffered by endogenous buffer and extrusion mechanism.\n"
+  ":\n"
+  ": Uses differential equations from Helmchen 1996\n"
+  ":dCa/dt = (dCa_T delta_t - (gamma*(dCa - Ca_rest)))/kb\n"
+  ": or dCa/dt = (dCa_T delta_t)/kb - (dCa - Ca_rest)/taur\n"
+  ": with  taur = kb/gamma\n"
+  ":\n"
+  ": to add exogenous buffer kb = 1+kendo+kexo\n"
+  ": for OGB-1 kexo = concOGB1/kd = 200uM/0.2uM => kb=1020\n"
+  ": for OGB-6 kexo = concOGB6/kd = 200uM/3uM   => kb=80\n"
+  ":\n"
+  ": mod file was modified from original version (Destexhe 92)\n"
+  ": use diam/4 instead of depth to calculate [Ca]\n"
+  ": Units checked using \"modlunit\" -> factor 10000 needed in ca entry\n"
+  ":\n"
+  ": Written by B Kampa May 2006\n"
+  "\n"
+  "\n"
+  "INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}\n"
+  "\n"
+  "NEURON {\n"
+  "	SUFFIX cad\n"
+  "	USEION ca READ ica, cai WRITE cai\n"
+  "	RANGE ca\n"
+  "	GLOBAL depth,cainf,taur\n"
+  "}\n"
+  "\n"
+  "UNITS {\n"
+  "	(molar) = (1/liter)			: moles do not appear in units\n"
+  "	(mM)	= (millimolar)\n"
+  "	(um)	= (micron)\n"
+  "	(mA)	= (milliamp)\n"
+  "	(msM)	= (ms mM)\n"
+  "	FARADAY = (faraday) (coulomb)\n"
+  "}\n"
+  "\n"
+  "\n"
+  "PARAMETER {\n"
+  "	diam		(um)\n"
+  "	depth	= .1	(um)		: no used anymore, uses diam/4 now\n"
+  "	taur	= 15	(ms)		: Ca decay from Sabatini 2002, uses kb/gamma now\n"
+  "	kb 	= 20			: buffer ratio from Sabatini 2002\n"
+  "	cainf	= 100e-6(mM)	: will be adjusted during init phase\n"
+  "	cai		(mM)\n"
+  "	gamma = 1.2	(1/ms)    : Tried 0.1 and 0.6 on Jan 31 by Penny, almost no difference on TTX condition\n"
+  "}\n"
+  "\n"
+  "STATE {\n"
+  "	ca		(mM) <1e-5>\n"
+  "}\n"
+  "\n"
+  "INITIAL {\n"
+  "	ca = cainf\n"
+  "	cai = ca\n"
+  "}\n"
+  "\n"
+  "ASSIGNED {\n"
+  "	ica		(mA/cm2)\n"
+  "	drive_channel	(mM/ms)\n"
+  "}\n"
+  "\n"
+  "BREAKPOINT {\n"
+  "	SOLVE state METHOD euler\n"
+  "}\n"
+  "\n"
+  "DERIVATIVE state {\n"
+  "	depth = diam/4\n"
+  "	drive_channel =  - (10000) * ica / (2 * FARADAY * depth)\n"
+  "	if (drive_channel <= 0.) { drive_channel = 0. }	: cannot pump inward\n"
+  "	taur = kb/gamma\n"
+  "	ca' = (drive_channel/kb) + ((cainf-ca)/taur)\n"
+  "	cai = ca\n"
+  "}\n"
+  ;
+#endif

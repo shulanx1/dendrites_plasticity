@@ -1,4 +1,4 @@
-/* Created by Language version: 7.5.0 */
+/* Created by Language version: 7.7.0 */
 /* VECTORIZED */
 #define NRN_VECTORIZED 1
 #include <stdio.h>
@@ -96,6 +96,15 @@ extern void hoc_register_limits(int, HocParmLimits*);
 extern void hoc_register_units(int, HocParmUnits*);
 extern void nrn_promote(Prop*, int, int);
 extern Memb_func* memb_func;
+ 
+#define NMODL_TEXT 1
+#if NMODL_TEXT
+static const char* nmodl_file_text;
+static const char* nmodl_filename;
+extern void hoc_reg_nmodl_text(int, const char*);
+extern void hoc_reg_nmodl_filename(int, const char*);
+#endif
+
  extern void _nrn_setdata_reg(int, void(*)(Prop*));
  static void _setdata(Prop* _prop) {
  _extcall_prop = _prop;
@@ -169,7 +178,7 @@ static void _ode_matsol(_NrnThread*, _Memb_list*, int);
  static void _ode_matsol_instance1(_threadargsproto_);
  /* connect range variables in _p that hoc is supposed to know about */
  static const char *_mechanism[] = {
- "7.5.0",
+ "7.7.0",
 "kBK",
  "gpeak_kBK",
  "caPh_kBK",
@@ -245,6 +254,10 @@ extern void _cvode_abstol( Symbol**, double*, int);
  _mechtype = nrn_get_mechtype(_mechanism[1]);
      _nrn_setdata_reg(_mechtype, _setdata);
      _nrn_thread_reg(_mechtype, 2, _update_ion_pointer);
+ #if NMODL_TEXT
+  hoc_reg_nmodl_text(_mechtype, nmodl_file_text);
+  hoc_reg_nmodl_filename(_mechtype, nmodl_filename);
+#endif
   hoc_register_prop_size(_mechtype, 19, 5);
   hoc_register_dparam_semantics(_mechtype, 0, "k_ion");
   hoc_register_dparam_semantics(_mechtype, 1, "k_ion");
@@ -254,7 +267,7 @@ extern void _cvode_abstol( Symbol**, double*, int);
  	hoc_register_cvode(_mechtype, _ode_count, _ode_map, _ode_spec, _ode_matsol);
  	hoc_register_tolerance(_mechtype, _hoc_state_tol, &_atollist);
  	hoc_register_var(hoc_scdoub, hoc_vdoub, hoc_intfunc);
- 	ivoc_help("help ?1 kBK C:/work/Code/neuron-l5pn-model/mod_Gao2020/kBK.mod\n");
+ 	ivoc_help("help ?1 kBK E:/Code/dendrites_pasticity/mod_Gao2020/kBK.mod\n");
  hoc_register_limits(_mechtype, _hoc_parm_limits);
  hoc_register_units(_mechtype, _hoc_parm_units);
  }
@@ -558,4 +571,118 @@ _first = 0;
 
 #if defined(__cplusplus)
 } /* extern "C" */
+#endif
+
+#if NMODL_TEXT
+static const char* nmodl_filename = "kBK.mod";
+static const char* nmodl_file_text = 
+  ": from https://senselab.med.yale.edu/ModelDB/ShowModel.cshtml?model=168148&file=/stadler2014_layerV/kBK.mod\n"
+  "TITLE large-conductance calcium-activated potassium channel (BK)\n"
+  "	:Mechanism according to Gong et al 2001 and Womack&Khodakakhah 2002,\n"
+  "	:adapted for Layer V cells on the basis of Benhassine&Berger 2005.\n"
+  "	:NB: concentrations in mM\n"
+  "	\n"
+  "NEURON {\n"
+  "	SUFFIX kBK\n"
+  "	USEION k READ ek WRITE ik\n"
+  "	USEION ca READ cai\n"
+  "	RANGE gpeak, gkact, caPh, caPk, caPmax, caPmin\n"
+  "	RANGE caVhh, CaVhk, caVhmax, caVhmin, k, tau\n"
+  "        GLOBAL pinfmin : cutoff - if pinf < pinfmin, set to 0.; by default cutoff not used (pinfmin==0)\n"
+  "}\n"
+  "\n"
+  "\n"
+  "UNITS {\n"
+  "	(mA) = (milliamp)\n"
+  "	(mV) = (millivolt)\n"
+  "	(molar) = (1/liter)\n"
+  "	(mM) 	= (millimolar)\n"
+  "}\n"
+  "\n"
+  "\n"
+  "PARAMETER {\n"
+  "		:maximum conductance (Benhassine 05)\n"
+  "	gpeak   = 268e-4	(mho/cm2) <0, 1e9>\n"
+  "	\n"
+  "	                                    : Calcium dependence of opening probability (Gong 2001)\n"
+  "	caPh    = 2e-3     (mM)             : conc. with half maximum open probaility\n"
+  "	caPk    = 1                         : Steepness of calcium dependence curve\n"
+  "	caPmax  = 1                         : max and\n"
+  "	caPmin  = 0                         : min open probability\n"
+  "		\n"
+  "	                                    : Calcium dependence of Vh shift (Womack 2002)\n"
+  "	caVhh   = 2e-3    (mM)              : Conc. for half of the Vh shift\n"
+  "	caVhk   = -0.94208                  : Steepness of the Vh-calcium dependence curve\n"
+  "	caVhmax = 155.67 (mV)               : max and\n"
+  "	caVhmin = -46.08 (mV)               : min Vh\n"
+  "	\n"
+  "	                                    : Voltage dependence of open probability (Gong 2001)\n"
+  "	                                    : must not be zero\n"
+  "	k       = 17	(mV)\n"
+  "	\n"
+  "	                                    : Timeconstant of channel kinetics\n"
+  "	                                    : no data for a description of a calcium&voltage dependence\n"
+  "	                                    : some points (room temp) in Behassine 05 & Womack 02\n"
+  "	tau     = 1 (ms) <1e-12, 1e9>\n"
+  "	scale   = 100                       : scaling to incorporate higher ca conc near ca channels\n"
+  "        \n"
+  "        pinfmin = 0.0                       : cutoff for pinf - less than that set pinf to 0.0\n"
+  "\n"
+  "} 	\n"
+  "\n"
+  "\n"
+  "ASSIGNED {\n"
+  "	v 		(mV)\n"
+  "	ek		(mV)\n"
+  "	ik 		(mA/cm2)\n"
+  "    	cai  		(mM)\n"
+  "	caiScaled	(mM)\n"
+  "	pinf		(1)\n"
+  "}\n"
+  "\n"
+  "\n"
+  "STATE {\n"
+  "        p\n"
+  "}\n"
+  "\n"
+  "BREAKPOINT {\n"
+  "	SOLVE states METHOD cnexp\n"
+  "	ik = gpeak*p* (v - ek)\n"
+  "}\n"
+  "\n"
+  "DERIVATIVE states {     \n"
+  "        rate(v, cai)\n"
+  "        p' =  (pinf - p)/tau\n"
+  "}\n"
+  "\n"
+  "INITIAL {     \n"
+  "        rate(v, cai)\n"
+  "        p = pinf\n"
+  "}\n"
+  "\n"
+  "PROCEDURE rate(v(mV), ca(mM))  {\n"
+  "        caiScaled = ca*scale	\n"
+  "        pinf = P0ca(caiScaled) / ( 1 + exp( (Vhca(caiScaled)-v)/k ) )\n"
+  "        if(pinf < pinfmin) { pinf = 0.0 }\n"
+  "}\n"
+  "\n"
+  "FUNCTION P0ca(ca(mM)) (1) {\n"
+  "		\n"
+  "	if (ca < 1E-18) { 		:check for division by zero		\n"
+  "	P0ca = caPmin\n"
+  "	} else {\n"
+  "	P0ca = caPmin + ( (caPmax - caPmin) / ( 1 + (caPh/ca)^caPk ))\n"
+  "	}\n"
+  "}\n"
+  "\n"
+  "FUNCTION Vhca(ca(mM)) (mV) {\n"
+  "		\n"
+  "	if (ca < 1E-18) {		:check for division by zero\n"
+  "	Vhca = caVhmax\n"
+  "	} else {\n"
+  "	Vhca = caVhmin + ( (caVhmax - caVhmin ) / ( 1 + ((caVhh/ca)^caVhk)) )\n"
+  "	}\n"
+  "}	\n"
+  "\n"
+  ;
 #endif

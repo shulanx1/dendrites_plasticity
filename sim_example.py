@@ -6,13 +6,14 @@ dv_soma/dw.
 #%%
 import sys
 import os
-wd = 'C:\\work\\Code\\Dendrites_plasticity' # working directory
+wd = 'E:\\Code\\dendrites_pasticity' # working directory
 sys.path.insert(1, wd)
 
 import numpy as np
 import pickle
 
 from matplotlib import pyplot
+import matplotlib.pyplot as plt
 from neuron import h
 import neuron
 
@@ -22,20 +23,36 @@ from dendrites import parameters1
 from dendrites import plot_raster
 from dendrites import sequences
 from dendrites import training
+from dendrites import parametersL5_Hay
+P = parametersL5_Hay.init_params(wd)
 
-h('forall pop_section()')
-h('forall delete_section()')
-T = 500        # simulation time (ms)
+
+T = 200        # simulation time (ms)
 dt = 0.1        # time step (ms)
 v_init = -75    # initial voltage (mV)
 seed = 1        # random seed
+stim_dur = 300							# stimulus duration
+stim_on = 100							# stimulus on
+stim_off = stim_on + stim_dur           # stimulus off
+t_on = 0								# background on
+t_off = stim_on							# background off
+r_0 = 1.25								# background rate
+dt = 0.1            					# time step
+r_mean = 2.5
+num_patterns = 4
+input = 'opt'
+param_sets = {'rate':[40., 0, 0.], 'temp':[2.5, 1, 1.], 'opt':[20., 1, 1.]}
+r_max, num_t, s = param_sets[input]
+mu = 0
+sigma = 2
+w_jitter = 0.5      # perturbation to initial weights
+
+
 kernel_fit = wd + "\\input\\kernel_fit_act1"  # fitted plasticity kernel
 # P = parameters1.init_params(wd)            # stores model parameters in dict P
 
-from dendrites import parametersL5_Hay
-P = parametersL5_Hay.init_params(wd)
-# P = init_params(wd)
-c_model = False # True for custom compartmental model with explicit gradient
+
+c_model = True # True for custom compartmental model with explicit gradient
                  # calculations, False for Neuron model using fitted approximation
 num_spikes = 3   # max number of somatic spikes for which to compute gradients
 np.random.seed(seed)
@@ -146,22 +163,6 @@ def get_k_grad(t0, t1, dt, S_e, S_i, v, kernel_params):
     return F_e, F_i
 
 
-### Run Simulation ###
-# rates_e, rates_i = sequences.lognormal_rates(1, P['N_e'], P['N_i'], 0, 1)
-# S_e = sequences.build_rate_seq(rates_e[0], 0, T)
-# S_i = sequences.build_rate_seq(rates_i[0], 0, T)
-stim_dur = 300							# stimulus duration
-stim_on = 100							# stimulus on
-stim_off = stim_on + stim_dur           # stimulus off
-t_on = 0								# background on
-t_off = stim_on							# background off
-r_0 = 1.25								# background rate
-dt = 0.1            					# time step
-r_mean = 2.5
-num_patterns = 4
-input = 'opt'
-param_sets = {'rate':[40., 0, 0.], 'temp':[2.5, 1, 1.], 'opt':[20., 1, 1.]}
-r_max, num_t, s = param_sets[input]
 def init_input(P, num_patterns, stim_on, stim_off, r_mean, r_max, num_t, s):
     """
     Initialise input rates and spike time sequences for feature-binding task.
@@ -221,32 +222,69 @@ def pad_S(S0):
         S[k, :len(s)] = s
     return S
 
-jitter = 2.5
-if num_t > 0:
-    sigma = jitter*s*1e-3*r_max*(stim_off - stim_on)/num_t
-else:
-    sigma = jitter
-rates_e, rates_i, S_E, S_I, = init_input(P, num_patterns, stim_on, stim_off,
-                                        r_mean, r_max, num_t, s)
-pre_syn_e = sequences.PreSyn(r_0, sigma)
-pre_syn_i = sequences.PreSyn(r_0, sigma)
-S_e = [pre_syn_e.spike_train(t_on, t_off, stim_on, stim_off, s,
-                             rates_e[0][k], S_E[0][k]) for k in range(len(rates_e[0]))]
-S_i = [pre_syn_i.spike_train(t_on, t_off, stim_on, stim_off, s,
-                             rates_i[0][k], S_I[0][k]) for k in range(len(rates_i[0]))]
-S_e = pad_S(S_e)
-S_i = pad_S(S_i)
+def init_weights(P):
+    """
+    Initialise synaptic weights by perturbing initial values.
+
+    Parameters
+    ----------
+    P : dict
+        model parameters
+
+    Returns
+    -------
+    w_e, w_i :  ndarray
+        excitatory and inhibitory weight vectors
+    """
+    w_e = np.ones(P['N_e'])*[P['g_max_A'] + P['g_max_N']] + w_jitter*(P['g_max_A'] +
+            P['g_max_N'])*(np.random.rand(P['N_e']) - 1/2)
+    w_i = np.ones(P['N_i'])*[P['g_max_G']] + w_jitter*P['g_max_G']*(
+            np.random.rand(P['N_i']) - 1/2)
+    return w_e, w_i
+
+def init_rand_sequence(rates_e, rates_i, T):
+    """
+    build sequences of Poisson presynaptic input to excitatory and inhibitory
+    synapses
+
+    Parameters
+    ----------
+    rates_e, rates_i : list
+        excitatory and inhibitory input rates
+    T : int
+        total simulation time (ms)
+    Returns
+    -------
+    S_e, S_i :  list
+        excitatory and inhibitory presynaptic spike times
+    """
+    S_e = sequences.build_rate_seq(rates_e, 0, T)
+    S_i = sequences.build_rate_seq(rates_i, 0, T)
+    return S_e, S_i
+
+#%%
+h('forall pop_section()')
+h('forall delete_section()')
+rates_e, rates_i = sequences.lognormal_rates(1, P['N_e'], P['N_i'], mu, sigma)
+w_e, w_i = init_weights(P)
+S_e, S_i = init_rand_sequence(rates_e[0], rates_i[0], T)
 if c_model:
-    cell = comp_model.CModel(P)
-    t, soln, stim = cell.simulate(0, T, dt, v_init, S_e, S_i)
+    cell_comp = comp_model.CModel(P, verbool = True)
+    t, soln, stim = cell_comp.simulate_L5(0, T, dt, v_init, S_e, S_i)
     v = soln[0]
+    gates = soln[1]
+    plt.plot(t, v[1])
 else:
     cell = neuron_model.NModel(P, verbool = True)
+    # cell.set_deficite_channels('SK_E2', sec_name = 'all',  percentage = 0)
+    # cell.set_deficite_channels('CaDynamics_E2', sec_name = 'all',  percentage = 0)
+    cell.set_weights(w_e, w_i)
     _, kernel_params = pickle.load(open(kernel_fit, 'rb'))
     cell.kernel = kernel_params
-    t, v = cell.simulate(stim_off, dt, v_init, S_e, S_i)
+    t, v = cell.simulate(T, dt, v_init, S_e, S_i)
+    plt.plot(t, v[1])
 
-### Compute Gradients ###
+#%%### Compute Gradients ###
 t_window = 100  # synaptic plasticity window (fixed parameter)
 t1 = spike_times(dt, v)
 if len(t1) > 0:

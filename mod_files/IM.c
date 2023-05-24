@@ -1,4 +1,4 @@
-/* Created by Language version: 7.5.0 */
+/* Created by Language version: 7.7.0 */
 /* VECTORIZED */
 #define NRN_VECTORIZED 1
 #include <stdio.h>
@@ -88,6 +88,15 @@ extern void hoc_register_limits(int, HocParmLimits*);
 extern void hoc_register_units(int, HocParmUnits*);
 extern void nrn_promote(Prop*, int, int);
 extern Memb_func* memb_func;
+ 
+#define NMODL_TEXT 1
+#if NMODL_TEXT
+static const char* nmodl_file_text;
+static const char* nmodl_filename;
+extern void hoc_reg_nmodl_text(int, const char*);
+extern void hoc_reg_nmodl_filename(int, const char*);
+#endif
+
  extern void _nrn_setdata_reg(int, void(*)(Prop*));
  static void _setdata(Prop* _prop) {
  _extcall_prop = _prop;
@@ -154,7 +163,7 @@ static void _ode_matsol(_NrnThread*, _Memb_list*, int);
  static void _ode_matsol_instance1(_threadargsproto_);
  /* connect range variables in _p that hoc is supposed to know about */
  static const char *_mechanism[] = {
- "7.5.0",
+ "7.7.0",
 "im",
  "gkbar_im",
  "taumax_im",
@@ -211,6 +220,10 @@ extern void _cvode_abstol( Symbol**, double*, int);
      _nrn_setdata_reg(_mechtype, _setdata);
      _nrn_thread_reg(_mechtype, 2, _update_ion_pointer);
      _nrn_thread_table_reg(_mechtype, _check_table_thread);
+ #if NMODL_TEXT
+  hoc_reg_nmodl_text(_mechtype, nmodl_file_text);
+  hoc_reg_nmodl_filename(_mechtype, nmodl_filename);
+#endif
   hoc_register_prop_size(_mechtype, 12, 4);
   hoc_register_dparam_semantics(_mechtype, 0, "k_ion");
   hoc_register_dparam_semantics(_mechtype, 1, "k_ion");
@@ -219,7 +232,7 @@ extern void _cvode_abstol( Symbol**, double*, int);
  	hoc_register_cvode(_mechtype, _ode_count, _ode_map, _ode_spec, _ode_matsol);
  	hoc_register_tolerance(_mechtype, _hoc_state_tol, &_atollist);
  	hoc_register_var(hoc_scdoub, hoc_vdoub, hoc_intfunc);
- 	ivoc_help("help ?1 im C:/work/Code/Dendrites-master/mod_files/IM.mod\n");
+ 	ivoc_help("help ?1 im E:/Code/dendrites_pasticity/mod_files/IM.mod\n");
  hoc_register_limits(_mechtype, _hoc_parm_limits);
  hoc_register_units(_mechtype, _hoc_parm_units);
  }
@@ -545,4 +558,106 @@ _first = 0;
 
 #if defined(__cplusplus)
 } /* extern "C" */
+#endif
+
+#if NMODL_TEXT
+static const char* nmodl_filename = "IM.mod";
+static const char* nmodl_file_text = 
+  "TITLE Cortical M current\n"
+  ":\n"
+  ":   M-current, responsible for the adaptation of firing rate and the \n"
+  ":   afterhyperpolarization (AHP) of cortical pyramidal cells\n"
+  ":\n"
+  ":   First-order model described by hodgkin-Hyxley like equations.\n"
+  ":   K+ current, activated by depolarization, noninactivating.\n"
+  ":\n"
+  ":   Model taken from Yamada, W.M., Koch, C. and Adams, P.R.  Multiple \n"
+  ":   channels and calcium dynamics.  In: Methods in Neuronal Modeling, \n"
+  ":   edited by C. Koch and I. Segev, MIT press, 1989, p 97-134.\n"
+  ":\n"
+  ":   See also: McCormick, D.A., Wang, Z. and Huguenard, J. Neurotransmitter \n"
+  ":   control of neocortical neuronal activity and excitability. \n"
+  ":   Cerebral Cortex 3: 387-398, 1993.\n"
+  ":\n"
+  ":   Written by Alain Destexhe, Laval University, 1995\n"
+  ":\n"
+  ":   Changed initial from m=0 to m = m_inf, BAB 2018\n"
+  "\n"
+  "INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}\n"
+  "\n"
+  "NEURON {\n"
+  "	SUFFIX im\n"
+  "	USEION k READ ek WRITE ik\n"
+  "        RANGE gkbar, m_inf, tau_m, taumax\n"
+  "\n"
+  "}\n"
+  "\n"
+  "UNITS {\n"
+  "	(mA) = (milliamp)\n"
+  "	(mV) = (millivolt)\n"
+  "}\n"
+  "\n"
+  "\n"
+  "PARAMETER {\n"
+  "	v		(mV)\n"
+  "	celsius = 36    (degC)\n"
+  "	ek		= -80 (mV)\n"
+  "	gkbar	= 1e-6	(mho/cm2)\n"
+  "	taumax	= 1000	(ms)		: peak value of tau\n"
+  "}\n"
+  "\n"
+  "\n"
+  "\n"
+  "STATE {\n"
+  "	m\n"
+  "}\n"
+  "\n"
+  "ASSIGNED {\n"
+  "	ik	(mA/cm2)\n"
+  "	m_inf\n"
+  "	tau_m	(ms)\n"
+  "	tau_peak	(ms)\n"
+  "	tadj\n"
+  "}\n"
+  "\n"
+  "BREAKPOINT {\n"
+  "	SOLVE states METHOD cnexp\n"
+  "	ik = gkbar * m * (v - ek)\n"
+  "}\n"
+  "\n"
+  "DERIVATIVE states { \n"
+  "	evaluate_fct(v)\n"
+  "\n"
+  "	m' = (m_inf - m) / tau_m\n"
+  "}\n"
+  "\n"
+  "UNITSOFF\n"
+  "INITIAL {\n"
+  "	evaluate_fct(v)\n"
+  "	m = m_inf\n"
+  ":\n"
+  ":  The Q10 value is assumed to be 2.3\n"
+  ":\n"
+  "        tadj = 2.3 ^ ((celsius-36)/10)\n"
+  "	tau_peak = taumax / tadj\n"
+  "}\n"
+  "\n"
+  "PROCEDURE evaluate_fct(v(mV)) {\n"
+  "\n"
+  "	m_inf = 1 / ( 1 + exptable(-(v+35)/10) )\n"
+  "	tau_m = tau_peak / ( 3.3 * exptable((v+35)/20) + exptable(-(v+35)/20) )\n"
+  "}\n"
+  "UNITSON\n"
+  "\n"
+  "\n"
+  "FUNCTION exptable(x) { \n"
+  "	TABLE  FROM -25 TO 25 WITH 10000\n"
+  "\n"
+  "	if ((x > -25) && (x < 25)) {\n"
+  "		exptable = exp(x)\n"
+  "	} else {\n"
+  "		exptable = 0.\n"
+  "	}\n"
+  "}\n"
+  ;
 #endif

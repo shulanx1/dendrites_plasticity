@@ -1,4 +1,4 @@
-/* Created by Language version: 7.5.0 */
+/* Created by Language version: 7.7.0 */
 /* NOT VECTORIZED */
 #define NRN_VECTORIZED 0
 #include <stdio.h>
@@ -90,6 +90,15 @@ extern void hoc_register_limits(int, HocParmLimits*);
 extern void hoc_register_units(int, HocParmUnits*);
 extern void nrn_promote(Prop*, int, int);
 extern Memb_func* memb_func;
+ 
+#define NMODL_TEXT 1
+#if NMODL_TEXT
+static const char* nmodl_file_text;
+static const char* nmodl_filename;
+extern void hoc_reg_nmodl_text(int, const char*);
+extern void hoc_reg_nmodl_filename(int, const char*);
+#endif
+
  extern void _nrn_setdata_reg(int, void(*)(Prop*));
  static void _setdata(Prop* _prop) {
  _p = _prop->param; _ppvar = _prop->dparam;
@@ -218,7 +227,7 @@ static void _ode_matsol(_NrnThread*, _Memb_list*, int);
  static void _ode_matsol_instance1(_threadargsproto_);
  /* connect range variables in _p that hoc is supposed to know about */
  static const char *_mechanism[] = {
- "7.5.0",
+ "7.7.0",
 "na",
  "gbar_na",
  0,
@@ -276,6 +285,10 @@ extern void _cvode_abstol( Symbol**, double*, int);
  _mechtype = nrn_get_mechtype(_mechanism[1]);
      _nrn_setdata_reg(_mechtype, _setdata);
      _nrn_thread_reg(_mechtype, 2, _update_ion_pointer);
+ #if NMODL_TEXT
+  hoc_reg_nmodl_text(_mechtype, nmodl_file_text);
+  hoc_reg_nmodl_filename(_mechtype, nmodl_filename);
+#endif
   hoc_register_prop_size(_mechtype, 13, 4);
   hoc_register_dparam_semantics(_mechtype, 0, "na_ion");
   hoc_register_dparam_semantics(_mechtype, 1, "na_ion");
@@ -284,7 +297,7 @@ extern void _cvode_abstol( Symbol**, double*, int);
  	hoc_register_cvode(_mechtype, _ode_count, _ode_map, _ode_spec, _ode_matsol);
  	hoc_register_tolerance(_mechtype, _hoc_state_tol, &_atollist);
  	hoc_register_var(hoc_scdoub, hoc_vdoub, hoc_intfunc);
- 	ivoc_help("help ?1 na C:/work/Code/neuron-l5pn-model/mod_Gao2020/na.mod\n");
+ 	ivoc_help("help ?1 na E:/Code/dendrites_pasticity/mod_Gao2020/na.mod\n");
  hoc_register_limits(_mechtype, _hoc_parm_limits);
  hoc_register_units(_mechtype, _hoc_parm_units);
  }
@@ -670,3 +683,172 @@ static void _initlists() {
    _t_htau = makevector(200*sizeof(double));
 _first = 0;
 }
+
+#if NMODL_TEXT
+static const char* nmodl_filename = "na.mod";
+static const char* nmodl_file_text = 
+  "\n"
+  "COMMENT\n"
+  "26 Ago 2002 Modification of original channel to allow variable time step and to correct an initialization error.\n"
+  "    Done by Michael Hines(michael.hines@yale.e) and Ruggero Scorcioni(rscorcio@gmu.edu) at EU Advance Course in Computational Neuroscience. Obidos, Portugal\n"
+  "\n"
+  "\n"
+  "na.mod\n"
+  "\n"
+  "Sodium channel, Hodgkin-Huxley style kinetics.\n"
+  "\n"
+  "Kinetics were fit to data from Huguenard et al. (1988) and Hamill et\n"
+  "al. (1991)\n"
+  "\n"
+  "qi is not well constrained by the data, since there are no points\n"
+  "between -80 and -55.  So this was fixed at 5 while the thi1,thi2,Rg,Rd\n"
+  "were optimized using a simplex least square proc\n"
+  "\n"
+  "voltage dependencies are shifted approximately from the best\n"
+  "fit to give higher threshold\n"
+  "\n"
+  "Author: Zach Mainen, Salk Institute, 1994, zach@salk.edu\n"
+  "\n"
+  "tadj, the temperature adjustment was removed from instantaneous conductance term\n"
+  "in BREAKPOINT\n"
+  "\n"
+  "steady-state inactivation was changed to more usual form: a/(a+b) and\n"
+  "inactivation time constant was significantly reduced to reflect recent data\n"
+  "from Kole, .... Stuart '08 Nat Neurosci.\n"
+  "\n"
+  "Corey Acker, July 2008, Neuroscience, UConn Health Center\n"
+  "\n"
+  "ENDCOMMENT\n"
+  "\n"
+  "INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}\n"
+  "\n"
+  "NEURON {\n"
+  "	SUFFIX na\n"
+  "	USEION na READ ena WRITE ina\n"
+  "	RANGE m, h, gna, gbar\n"
+  "	GLOBAL tha, thi1, thi2, qa, qi, qinf, thinf\n"
+  "	RANGE minf, hinf, mtau, htau\n"
+  "	GLOBAL Ra, Rb, Rd, Rg\n"
+  "	GLOBAL q10, temp, tadj, vmin, vmax, vshift\n"
+  "}\n"
+  "\n"
+  "PARAMETER {\n"
+  "	gbar = 1000   	(pS/um2)	: 0.12 mho/cm2\n"
+  ":	vshift = -10	(mV)		: voltage shift (affects all)\n"
+  "	vshift = 0	(mV)		: voltage shift (affects all)\n"
+  "\n"
+  "	tha  = -38 :-40 :-35.5 : -35	(mV)	: v 1/2 for act		(-42)\n"
+  "	qa   = 9	(mV)		: act slope\n"
+  "	Ra   = 0.182	(/ms)		: open (v)\n"
+  "	Rb   = 0.124	(/ms)		: close (v)\n"
+  "\n"
+  ":	thi1  = -50	(mV)		: v 1/2 for inact\n"
+  "      thi1 = -65 (mV)\n"
+  ":	thi2  = -75	(mV)		: v 1/2 for inact\n"
+  "      thi2 = -65 (mV)\n"
+  "	qi   = 6	(mV)	        : inact tau slope\n"
+  ":	thinf  = -65	(mV)		: inact inf slope\n"
+  "	thinf  = -65	(mV)		: inact inf slope\n"
+  "	qinf  = 6.2	(mV)		: inact inf slope\n"
+  ":	Rg   = 0.0091	(/ms)		: inact (v)\n"
+  "	Rg   = 0.02	(/ms)		: inact (v)\n"
+  "	Rd   = 0.024	(/ms)		: inact recov (v)\n"
+  "\n"
+  "	temp = 23	(degC)		: original temp\n"
+  "	q10 = 2.3			: temperature sensitivity\n"
+  "\n"
+  "	v 		(mV)\n"
+  "	dt		(ms)\n"
+  "	celsius		(degC)\n"
+  "	vmin = -120	(mV)\n"
+  "	vmax = 100	(mV)\n"
+  "}\n"
+  "\n"
+  "\n"
+  "UNITS {\n"
+  "	(mA) = (milliamp)\n"
+  "	(mV) = (millivolt)\n"
+  "	(pS) = (picosiemens)\n"
+  "	(um) = (micron)\n"
+  "}\n"
+  "\n"
+  "ASSIGNED {\n"
+  "	ina 		(mA/cm2)\n"
+  "	gna		(pS/um2)\n"
+  "	ena		(mV)\n"
+  "	minf 		hinf\n"
+  "	mtau (ms)	htau (ms)\n"
+  "	tadj\n"
+  "}\n"
+  "\n"
+  "\n"
+  "STATE { m h }\n"
+  "\n"
+  "INITIAL {\n"
+  "	trates(v+vshift)\n"
+  "	m = minf\n"
+  "	h = hinf\n"
+  "}\n"
+  "\n"
+  "BREAKPOINT {\n"
+  "        SOLVE states METHOD cnexp\n"
+  ":        gna = tadj*gbar*m*m*m*h : originally included tadj\n"
+  "        gna = gbar*m*m*m*h\n"
+  "	ina = (1e-4) * gna * (v - ena)\n"
+  "}\n"
+  "\n"
+  "LOCAL mexp, hexp\n"
+  "\n"
+  "DERIVATIVE states {   :Computes state variables m, h, and n\n"
+  "        trates(v+vshift)      :             at the current v and dt.\n"
+  "        m' =  (minf-m)/mtau\n"
+  "        h' =  (hinf-h)/htau\n"
+  "}\n"
+  "\n"
+  "PROCEDURE trates(v) {\n"
+  "\n"
+  "\n"
+  "        TABLE minf,  hinf, mtau, htau\n"
+  "	DEPEND  celsius, temp, Ra, Rb, Rd, Rg, tha, thi1, thi2, qa, qi, qinf\n"
+  "\n"
+  "	FROM vmin TO vmax WITH 199\n"
+  "\n"
+  "	rates(v): not consistently executed from here if usetable == 1\n"
+  "\n"
+  ":        tinc = -dt * tadj\n"
+  "\n"
+  ":        mexp = 1 - exp(tinc/mtau)\n"
+  ":        hexp = 1 - exp(tinc/htau)\n"
+  "}\n"
+  "\n"
+  "\n"
+  "PROCEDURE rates(vm) {\n"
+  "        LOCAL  a, b\n"
+  "\n"
+  "	a = trap0(vm,tha,Ra,qa)\n"
+  "	b = trap0(-vm,-tha,Rb,qa)\n"
+  "\n"
+  "        tadj = q10^((celsius - temp)/10)\n"
+  "\n"
+  "	mtau = 1/tadj/(a+b)\n"
+  "	minf = a/(a+b)\n"
+  "\n"
+  "		:\"h\" inactivation\n"
+  "\n"
+  "	a = trap0(-vm,-thi1,Rd,qi)\n"
+  "	b = trap0(vm,thi2,Rg,qi)\n"
+  "	htau = 1/tadj/(a+b)\n"
+  ":	hinf = 1/(1+exp((vm-thinf)/qinf))\n"
+  "      hinf = a/(a+b)\n"
+  "}\n"
+  "\n"
+  "\n"
+  "FUNCTION trap0(v,th,a,q) {\n"
+  "	if (fabs(v/th) > 1e-6) {\n"
+  "	        trap0 = a * (v - th) / (1 - exp(-(v - th)/q))\n"
+  "	} else {\n"
+  "	        trap0 = a * q\n"
+  " 	}\n"
+  "}\n"
+  ;
+#endif

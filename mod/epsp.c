@@ -1,4 +1,4 @@
-/* Created by Language version: 7.5.0 */
+/* Created by Language version: 7.7.0 */
 /* VECTORIZED */
 #define NRN_VECTORIZED 1
 #include <stdio.h>
@@ -79,6 +79,15 @@ extern void hoc_register_limits(int, HocParmLimits*);
 extern void hoc_register_units(int, HocParmUnits*);
 extern void nrn_promote(Prop*, int, int);
 extern Memb_func* memb_func;
+ 
+#define NMODL_TEXT 1
+#if NMODL_TEXT
+static const char* nmodl_file_text;
+static const char* nmodl_filename;
+extern void hoc_reg_nmodl_text(int, const char*);
+extern void hoc_reg_nmodl_filename(int, const char*);
+#endif
+
  extern Prop* nrn_point_prop_;
  static int _pointtype;
  static void* _hoc_create_pnt(_ho) Object* _ho; { void* create_point_process();
@@ -154,7 +163,7 @@ static void  nrn_jacob(_NrnThread*, _Memb_list*, int);
 }
  /* connect range variables in _p that hoc is supposed to know about */
  static const char *_mechanism[] = {
- "7.5.0",
+ "7.7.0",
 "epsp",
  "onset",
  "tau0",
@@ -215,11 +224,15 @@ extern void _cvode_abstol( Symbol**, double*, int);
      _nrn_setdata_reg(_mechtype, _setdata);
      _nrn_thread_reg(_mechtype, 1, _thread_mem_init);
      _nrn_thread_reg(_mechtype, 0, _thread_cleanup);
+ #if NMODL_TEXT
+  hoc_reg_nmodl_text(_mechtype, nmodl_file_text);
+  hoc_reg_nmodl_filename(_mechtype, nmodl_filename);
+#endif
   hoc_register_prop_size(_mechtype, 8, 2);
   hoc_register_dparam_semantics(_mechtype, 0, "area");
   hoc_register_dparam_semantics(_mechtype, 1, "pntproc");
  	hoc_register_var(hoc_scdoub, hoc_vdoub, hoc_intfunc);
- 	ivoc_help("help ?1 epsp C:/work/Code/neuron-l5pn-model/mod/epsp.mod\n");
+ 	ivoc_help("help ?1 epsp E:/Code/dendrites_pasticity/mod/epsp.mod\n");
  hoc_register_limits(_mechtype, _hoc_parm_limits);
  hoc_register_units(_mechtype, _hoc_parm_units);
  }
@@ -410,4 +423,79 @@ _first = 0;
 
 #if defined(__cplusplus)
 } /* extern "C" */
+#endif
+
+#if NMODL_TEXT
+static const char* nmodl_filename = "epsp.mod";
+static const char* nmodl_file_text = 
+  ": this model is built-in to neuron with suffix epsp\n"
+  ": Schaefer et al. 2003\n"
+  "\n"
+  "COMMENT\n"
+  "modified from syn2.mod\n"
+  "injected current with exponential rise and decay current defined by\n"
+  "         i = 0 for t < onset and\n"
+  "         i=amp*((1-exp(-(t-onset)/tau0))-(1-exp(-(t-onset)/tau1)))\n"
+  "          for t > onset\n"
+  "\n"
+  "	compare to experimental current injection:\n"
+  " 	i = - amp*(1-exp(-t/t1))*(exp(-t/t2))\n"
+  "\n"
+  "	-> tau1==t2   tau0 ^-1 = t1^-1 + t2^-1\n"
+  "ENDCOMMENT\n"
+  "					       \n"
+  "INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}\n"
+  "\n"
+  "NEURON {\n"
+  "	POINT_PROCESS epsp\n"
+  "	RANGE onset, tau0, tau1, imax, i, myv\n"
+  "	NONSPECIFIC_CURRENT i\n"
+  "}\n"
+  "UNITS {\n"
+  "	(nA) = (nanoamp)\n"
+  "	(mV) = (millivolt)\n"
+  "	(umho) = (micromho)\n"
+  "}\n"
+  "\n"
+  "PARAMETER {\n"
+  "	onset=0  (ms)\n"
+  "	tau0=0.2 (ms)\n"
+  "	tau1=3.0 (ms)\n"
+  "	imax=0 	 (nA)\n"
+  "	v	 (mV)\n"
+  "}\n"
+  "\n"
+  "ASSIGNED { i (nA)  myv (mV)}\n"
+  "\n"
+  "LOCAL   a[2]\n"
+  "LOCAL   tpeak\n"
+  "LOCAL   adjust\n"
+  "LOCAL   amp\n"
+  "\n"
+  "BREAKPOINT {\n"
+  "	myv = v\n"
+  "        i = curr(t)\n"
+  "}\n"
+  "\n"
+  "FUNCTION myexp(x) {\n"
+  "	if (x < -100) {\n"
+  "	myexp = 0\n"
+  "	}else{\n"
+  "	myexp = exp(x)\n"
+  "	}\n"
+  "}\n"
+  "\n"
+  "FUNCTION curr(x) {				\n"
+  "	tpeak=tau0*tau1*log(tau0/tau1)/(tau0-tau1)\n"
+  "	adjust=1/((1-myexp(-tpeak/tau0))-(1-myexp(-tpeak/tau1)))\n"
+  "	amp=adjust*imax\n"
+  "	if (x < onset) {\n"
+  "		curr = 0\n"
+  "	}else{\n"
+  "		a[0]=1-myexp(-(x-onset)/tau0)\n"
+  "		a[1]=1-myexp(-(x-onset)/tau1)\n"
+  "		curr = -amp*(a[0]-a[1])\n"
+  "	}\n"
+  "}\n"
+  ;
 #endif

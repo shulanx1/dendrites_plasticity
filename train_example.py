@@ -3,7 +3,8 @@
 Train neuron on nonlinear feature binding task.
 """
 #%%
-wd = 'C:\\work\\Code\\Dendrites_plasticity'  # working directory
+import sys
+wd = 'E:\\Code\\dendrites_pasticity'  # working directory
 sys.path.insert(1, wd)
 import numpy as np
 import pickle
@@ -15,16 +16,18 @@ from dendrites import parameters1
 from dendrites import training
 from dendrites import sequences
 from dendrites import parametersL5_Hay
+from dendrites import visualization
 import os
 from neuron import h
+import time
 
 h('forall pop_section()')
 h('forall delete_section()')
 model = 'act'			 	# act, pas, pn
 input = 'opt'				# rate, temp, opt
 num_patterns = 4	 		# 4, 9, ..., 100
-seed = 1		 			# random seed
-model_file = wd + '\\outputs\\example_1'  # for saving output
+seed = int(time.time())		 			# random seed
+model_file = wd + '\\outputs\\example_basal_2'  # for saving output
 path = wd + '\\outputs'
 if not os.path.exists(path):
     os.makedirs(path)
@@ -34,7 +37,7 @@ r_max, num_t, s = param_sets[input]
 
 
 ### Simulation Parameters ###
-stim_dur = 300							# stimulus duration
+stim_dur = 400							# stimulus duration
 stim_on = 100							# stimulus on
 stim_off = stim_on + stim_dur           # stimulus off
 t_on = 0								# background on
@@ -189,10 +192,79 @@ E_P = [[0.5] for k in range(num_patterns)]
 W_E = [np.array(w_e)]
 W_I = [np.array(w_i)]
 
+
+### test initial parameters
+test_file_initial = model_file + '_initial_test'
+
+h('forall pop_section()')
+h('forall delete_section()')
+reps = 10
+cell = neuron_model.NModel(P)
+np.random.seed(seed)
+cell.set_weights(w_e, w_i)
+
+#
+if num_t > 0:
+    sigma = jitter*s*1e-3*r_max*(stim_off - stim_on)/num_t
+else:
+    sigma = jitter
+pre_syn = sequences.PreSyn(r_0, sigma)
+T = max(t_off, stim_off + 100)
+V = []
+S_e_all = []
+S_i_all = []
+for ind, _ in enumerate(Labels):
+    v_rep = []
+    S_e_rep = []
+    S_i_rep = []
+    for rep in range(reps):
+        S_e = [pre_syn.spike_train(t_on, t_off, stim_on, stim_off, s,
+                            rates_e[ind][k], S_E[ind][k]) for k in range(P['N_e'])]
+        S_i = [pre_syn.spike_train(t_on, t_off, stim_on, stim_off, s,
+                            rates_i[ind][k], S_I[ind][k]) for k in range(P['N_i'])]
+        t, v = cell.simulate(T, dt, v_init, S_e, S_i)
+        v_rep.append(v[0, :])
+        S_e_rep.append(S_e)
+        S_i_rep.append(S_i)
+    V.append(v_rep)
+    S_e_all.append(S_e_rep)
+    S_i_all.append(S_i_rep)
+V = np.array(V)
+pickle.dump([V,rates_e, rates_i, S_e_all, S_i_all, Labels, t], open(test_file_initial, 'wb'))
+
+fig, ax = pyplot.subplots(1, 2, figsize=(9, 2.5))
+for ind, label in enumerate(Labels):
+    color = next(ax[0]._get_lines.prop_cycler)['color']
+    if label < 0:
+        for rep in range(reps):
+            ax[0].plot(t, V[ind, rep].T, color=color)
+    else:
+        for rep in range(reps):
+            ax[1].plot(t, V[ind, rep].T, color=color)
+
+for a in ax:
+    a.set_xlim([0, T])
+    a.set_ylim([-80, 35])
+    a.set_yticks(np.arange(-75, 50, 25))
+    a.set_xlabel('time (ms)', fontsize=14)
+    a.set_ylabel('V' + r'$_{soma}$'+' (mV)', fontsize=14)
+    a.tick_params(labelsize=12)
+    a.spines['right'].set_visible(False)
+    a.spines['top'].set_visible(False)
+    a.yaxis.set_ticks_position('left')
+    a.xaxis.set_ticks_position('bottom')
+ax[0].title.set_text(r'$\ominus$' + ' patterns')
+ax[1].title.set_text(r'$\oplus$' + ' patterns')
+pyplot.tight_layout()
+pyplot.show()
+
+#%%
 ### Train Model ###
+# h('forall pop_section()')
+# h('forall delete_section()')
 # E, E_P, W_E, W_I, P = training.train(rates_e, rates_i, S_E, S_I, Labels, E, E_P,
 #                                     W_E, W_I, P, kernel)
-P['spike_num_thre'] = 1
+P['spike_num_thre'] = 0
 E, E_P, W_E, W_I, P = training.train_L5(rates_e, rates_i, S_E, S_I, Labels, E, E_P,
                                     W_E, W_I, P, kernel)
 E = E[1:]
@@ -201,13 +273,17 @@ if save_output:
     pickle.dump([rates_e, rates_i, S_E, S_I, Labels, E, E_P, W_E, W_I, P, kernel],
         open(model_file, 'wb'))
 
+
 ### Test Trained Model ####
+
+test_file = model_file + '_final_test'
+
 h('forall pop_section()')
 h('forall delete_section()')
-reps = 5
 cell = neuron_model.NModel(P)
 np.random.seed(seed)
 cell.set_weights(W_E[-1], W_I[-1])
+#cell.set_weights(w_e_init, w_i_init)
 if num_t > 0:
     sigma = jitter*s*1e-3*r_max*(stim_off - stim_on)/num_t
 else:
@@ -215,8 +291,13 @@ else:
 pre_syn = sequences.PreSyn(r_0, sigma)
 T = max(t_off, stim_off + 100)
 V = []
+S_e_all = []
+S_i_all = []
+
 for ind, _ in enumerate(Labels):
     v_rep = []
+    S_e_rep = []
+    S_i_rep = []
     for rep in range(reps):
         S_e = [pre_syn.spike_train(t_on, t_off, stim_on, stim_off, s,
                             rates_e[ind][k], S_E[ind][k]) for k in range(P['N_e'])]
@@ -224,8 +305,13 @@ for ind, _ in enumerate(Labels):
                             rates_i[ind][k], S_I[ind][k]) for k in range(P['N_i'])]
         t, v = cell.simulate(T, dt, v_init, S_e, S_i)
         v_rep.append(v[0, :])
+        S_e_rep.append(S_e)
+        S_i_rep.append(S_i)
     V.append(v_rep)
+    S_e_all.append(S_e_rep)
+    S_i_all.append(S_i_rep)
 V = np.array(V)
+pickle.dump([V,rates_e, rates_i, S_e_all, S_i_all, Labels, t], open(test_file, 'wb'))
 
 #### Plot Results ####
 fig, ax = pyplot.subplots(1, 2, figsize=(9, 2.5))
@@ -266,3 +352,7 @@ ax1.yaxis.set_ticks_position('left')
 ax1.xaxis.set_ticks_position('bottom')
 pyplot.tight_layout()
 pyplot.show()
+
+
+
+

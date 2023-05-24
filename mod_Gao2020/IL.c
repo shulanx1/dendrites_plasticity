@@ -1,4 +1,4 @@
-/* Created by Language version: 7.5.0 */
+/* Created by Language version: 7.7.0 */
 /* NOT VECTORIZED */
 #define NRN_VECTORIZED 0
 #include <stdio.h>
@@ -86,6 +86,15 @@ extern void hoc_register_limits(int, HocParmLimits*);
 extern void hoc_register_units(int, HocParmUnits*);
 extern void nrn_promote(Prop*, int, int);
 extern Memb_func* memb_func;
+ 
+#define NMODL_TEXT 1
+#if NMODL_TEXT
+static const char* nmodl_file_text;
+static const char* nmodl_filename;
+extern void hoc_reg_nmodl_text(int, const char*);
+extern void hoc_reg_nmodl_filename(int, const char*);
+#endif
+
  extern void _nrn_setdata_reg(int, void(*)(Prop*));
  static void _setdata(Prop* _prop) {
  _p = _prop->param; _ppvar = _prop->dparam;
@@ -217,7 +226,7 @@ static void _ode_matsol(_NrnThread*, _Memb_list*, int);
  static void _ode_matsol_instance1(_threadargsproto_);
  /* connect range variables in _p that hoc is supposed to know about */
  static const char *_mechanism[] = {
- "7.5.0",
+ "7.7.0",
 "kl",
  "gbar_kl",
  0,
@@ -271,6 +280,10 @@ extern void _cvode_abstol( Symbol**, double*, int);
  _mechtype = nrn_get_mechtype(_mechanism[1]);
      _nrn_setdata_reg(_mechtype, _setdata);
      _nrn_thread_reg(_mechtype, 2, _update_ion_pointer);
+ #if NMODL_TEXT
+  hoc_reg_nmodl_text(_mechtype, nmodl_file_text);
+  hoc_reg_nmodl_filename(_mechtype, nmodl_filename);
+#endif
   hoc_register_prop_size(_mechtype, 9, 4);
   hoc_register_dparam_semantics(_mechtype, 0, "k_ion");
   hoc_register_dparam_semantics(_mechtype, 1, "k_ion");
@@ -279,7 +292,7 @@ extern void _cvode_abstol( Symbol**, double*, int);
  	hoc_register_cvode(_mechtype, _ode_count, _ode_map, _ode_spec, _ode_matsol);
  	hoc_register_tolerance(_mechtype, _hoc_state_tol, &_atollist);
  	hoc_register_var(hoc_scdoub, hoc_vdoub, hoc_intfunc);
- 	ivoc_help("help ?1 kl C:/work/Code/neuron-l5pn-model/mod_Gao2020/IL.mod\n");
+ 	ivoc_help("help ?1 kl E:/Code/dendrites_pasticity/mod_Gao2020/IL.mod\n");
  hoc_register_limits(_mechtype, _hoc_parm_limits);
  hoc_register_units(_mechtype, _hoc_parm_units);
  }
@@ -589,3 +602,141 @@ static void _initlists() {
  _slist1[1] = &(l) - _p;  _dlist1[1] = &(Dl) - _p;
 _first = 0;
 }
+
+#if NMODL_TEXT
+static const char* nmodl_filename = "IL.mod";
+static const char* nmodl_file_text = 
+  "TITLE K-A channel from Klee Ficker and Heinemann\n"
+  "COMMENT\n"
+  "\n"
+  "Modified to be a low threshold, slowly inactivating current\n"
+  "   \n"
+  "   Corey Acker\n"
+  "   Neuroscience\n"
+  "   UConn Health Center\n"
+  "\n"
+  "   June 2006 */\n"
+  "\n"
+  "ENDCOMMENT\n"
+  "\n"
+  "UNITS {\n"
+  "	(mA) = (milliamp)\n"
+  "	(mV) = (millivolt)\n"
+  "\n"
+  "}\n"
+  "\n"
+  "PARAMETER {\n"
+  "     gbar=0.01\n"
+  "	v (mV)\n"
+  "	celsius (degC)\n"
+  "        vhalfn=11   (mV)\n"
+  "        vhalfl=-56   (mV)\n"
+  "        a0l=0.05      (/ms)\n"
+  "        a0n=0.05    (/ms)\n"
+  "        zetan=-1.5    (1)\n"
+  "        zetal=3    (1)\n"
+  "        gmn=0.55   (1)\n"
+  "        gml=1   (1)\n"
+  "	lmin=2  (mS)\n"
+  "	nmin=0.1  (mS)\n"
+  "	pw=-1    (1)\n"
+  "	tq=-40\n"
+  "	qq=5\n"
+  "	q10=5\n"
+  "	qtl=1\n"
+  "	ek\n"
+  "}\n"
+  "\n"
+  "\n"
+  "NEURON {\n"
+  "	SUFFIX kl\n"
+  "	USEION k READ ek WRITE ik\n"
+  "        RANGE gbar,gka\n"
+  "        GLOBAL ninf,linf,taul,taun,lmin\n"
+  "}\n"
+  "\n"
+  "STATE {\n"
+  "	n\n"
+  "        l\n"
+  "}\n"
+  "\n"
+  "ASSIGNED {\n"
+  "	ik (mA/cm2)\n"
+  "        ninf\n"
+  "        linf      \n"
+  "        taul\n"
+  "        taun\n"
+  "        gka\n"
+  "}\n"
+  "\n"
+  "INITIAL {\n"
+  "	rates(v)\n"
+  "	n=ninf\n"
+  "	l=linf\n"
+  "}\n"
+  "\n"
+  "\n"
+  "BREAKPOINT {\n"
+  "	SOLVE states METHOD cnexp\n"
+  "	gka = gbar*n*l\n"
+  "	ik = gka*(v-ek)\n"
+  "\n"
+  "}\n"
+  "\n"
+  "\n"
+  "FUNCTION alpn(v(mV)) {\n"
+  "LOCAL zeta\n"
+  "  zeta=zetan+pw/(1+exp((v-tq)/qq))\n"
+  "  alpn = exp(1.e-3*zeta*(v-vhalfn)*9.648e4/(8.315*(273.16+celsius))) \n"
+  "}\n"
+  "\n"
+  "FUNCTION betn(v(mV)) {\n"
+  "LOCAL zeta\n"
+  "  zeta=zetan+pw/(1+exp((v-tq)/qq))\n"
+  "  betn = exp(1.e-3*zeta*gmn*(v-vhalfn)*9.648e4/(8.315*(273.16+celsius))) \n"
+  "}\n"
+  "\n"
+  "FUNCTION alpl(v(mV)) {\n"
+  "  alpl = exp(1.e-3*zetal*(v-vhalfl)*9.648e4/(8.315*(273.16+celsius))) \n"
+  "}\n"
+  "\n"
+  "FUNCTION betl(v(mV)) {\n"
+  "  betl = exp(1.e-3*zetal*gml*(v-vhalfl)*9.648e4/(8.315*(273.16+celsius))) \n"
+  "}\n"
+  "\n"
+  "DERIVATIVE states {     : exact when v held constant; integrates over dt step\n"
+  "        rates(v)\n"
+  "        n' = (ninf - n)/taun\n"
+  "        l' =  (linf - l)/taul\n"
+  "}\n"
+  "\n"
+  "PROCEDURE rates(v (mV)) { :callable from hoc\n"
+  "        LOCAL a,qt\n"
+  "        qt=q10^((celsius-24)/10)\n"
+  "        a = alpn(v)\n"
+  "        taun = betn(v)/(qt*a0n*(1+a))\n"
+  "        if (taun<nmin) {taun=nmin}\n"
+  "        ninf = 1/(1 + exp(-(v+60)/20))\n"
+  "\n"
+  "\n"
+  "        taul = 0.26*(v+50)/qtl*20\n"
+  "        if (taul<lmin/qtl) {taul=lmin/qtl}\n"
+  "        linf = 1/(1+ exp((v+30)/20))\n"
+  "\n"
+  "}\n"
+  "\n"
+  "\n"
+  "\n"
+  "\n"
+  "\n"
+  "\n"
+  "\n"
+  "\n"
+  "\n"
+  "\n"
+  "\n"
+  "\n"
+  "\n"
+  "\n"
+  ;
+#endif
