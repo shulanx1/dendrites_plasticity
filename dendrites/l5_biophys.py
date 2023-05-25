@@ -95,7 +95,7 @@ class NaTa_t:
         d_hb = self.d_hbeta(v)
         return -1/self.qt*(d_ha + d_hb)/((ha + hb)**2)
 
-    def m_a(self, v):
+    def m_a(self, v, m, h):
         """
         scaling term for partial gradiant computation s_dm = a*s_v - b*s_m
 
@@ -106,14 +106,14 @@ class NaTa_t:
         minf = self.minf(v)
         return (d_minf/mtau)-(minf-self.m)/(mtau**2)*d_mtau
 
-    def m_b(self, v):
+    def m_b(self, v, m, h):
         """
         scaling term for partial gradiant computation s_dm = a*s_v - b*s_m
 
         """
         return 1/self.mtau(v)
 
-    def h_a(self, v):
+    def h_a(self, v, m, h):
         """
         scaling term for partial gradiant computation s_dh = a*s_v - b*s_h
 
@@ -124,7 +124,7 @@ class NaTa_t:
         hinf = self.hinf(v)
         return (d_hinf/htau)-(hinf-self.h)/(htau**2)*d_htau
 
-    def h_b(self, v):
+    def h_b(self, v, m, h):
         """
         scaling term for partial gradiant computation s_dh = a*s_v - b*s_h
 
@@ -534,11 +534,11 @@ class Im:
         return -1/self.qt*(d_ma + d_mb)/((ma + mb)**2)
     
     
-    def d_malpha(v):
+    def d_malpha(self, v):
     	return 3.3e-4*np.exp(0.1*(v + 35))
     
     
-    def d_mbeta(v):
+    def d_mbeta(self, v):
     	return -3.3e-4*np.exp(-0.1*(v + 35))
 
     def g_s(self, m):
@@ -892,10 +892,17 @@ class K_Pst:
         if hasattr(v, "__len__"):
             mT = np.zeros(v.shape)
             for k, vi in enumerate(v):
-                if vi < -50:
-                    mT[k] = (1.25 + 175.03*np.exp(0.026*vi))/self.qt
+                if hasattr(vi, "__len__"):
+                    for kk, vii in enumerate(vi):
+                        if vii < -50:
+                            mT[k][kk] = (1.25 + 175.03*np.exp(0.026*vii))/self.qt
+                        else:
+                            mT[k][kk] = (1.25 + 13 * np.exp(-0.026*vii))/self.qt
                 else:
-                    mT[k] = (1.25 + 13 * np.exp(-0.026*vi))/self.qt
+                    if vi < -50:
+                        mT[k] = (1.25 + 175.03*np.exp(0.026*vi))/self.qt
+                    else:
+                        mT[k] = (1.25 + 13 * np.exp(-0.026*vi))/self.qt
         else:
             if v < -50:
                 mT = (1.25 + 175.03*np.exp(0.026*v))/self.qt
@@ -917,10 +924,17 @@ class K_Pst:
         if hasattr(v, "__len__"):
             d_mT = np.zeros(v.shape)
             for k, vi in enumerate(v):
-                if vi < -50:
-                    d_mT[k] = 1/self.qt*175.03*0.026*np.exp(0.026*vi)
+                if hasattr(vi, "__len__"):
+                    for kk, vii in enumerate(vi):
+                        if vii < -50:
+                            d_mT[k][kk] = 1/self.qt*175.03*0.026*np.exp(0.026*vii)
+                        else:
+                            d_mT[k][kk] = 1/self.qt*(-0.026)*13*np.exp(-0.026*vii)
                 else:
-                    d_mT[k] = 1/self.qt*(-0.026)*13*np.exp(-0.026*vi)
+                    if vi < -50:
+                        d_mT[k] = 1/self.qt*175.03*0.026*np.exp(0.026*vi)
+                    else:
+                        d_mT[k] = 1/self.qt*(-0.026)*13*np.exp(-0.026*vi)
         else:
             if v < -50:
                 d_mT = 1/self.qt*175.03*0.026*np.exp(0.026*v)
@@ -1816,6 +1830,36 @@ class SK_E2:
         """
         return m
 
+    def d_minf(self, ca, dca):
+        return 0.00043*4.8*(0.00043/ca)**3.8*dca/(ca**2)*(self.minf(ca))**2
+
+    def d_mtau(self, ca, dca):
+        return 0
+
+    def m_a(self, ca, dca):
+        """
+        scaling term for partial gradiant computation s_dm = a*s_v - b*s_m
+
+        """
+        d_minf = self.d_minf(ca, dca)
+        mtau = self.mtau(ca)
+        return d_minf/mtau
+
+    def m_b(self, ca = 0, dca = 0):
+        """
+        scaling term for partial gradiant computation s_dm = a*s_v - b*s_m
+
+        """
+        return 1
+
+    def m_c(self, v, m):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_m
+
+        """
+        return self.E - v
+
+
 class kBK:
     def __init__(self, v, ca =  1e-4, E = -85.0):
         self.m = self.minf(v, ca)
@@ -1859,4 +1903,5 @@ class CaDynamics_E2:
     def update(self, ica, ca, gamma, decay, dt):
         ca = ca + dt*(-10000*ica*gamma/(2*96500*self.depth) - (ca - self.minCai)/decay)
         return ca
+
 

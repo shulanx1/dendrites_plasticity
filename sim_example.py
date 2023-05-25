@@ -6,7 +6,7 @@ dv_soma/dw.
 #%%
 import sys
 import os
-wd = 'E:\\Code\\dendrites_pasticity' # working directory
+wd = 'E:\\Code\\dendrites_plasticity' # working directory
 sys.path.insert(1, wd)
 
 import numpy as np
@@ -54,7 +54,7 @@ kernel_fit = wd + "\\input\\kernel_fit_act1"  # fitted plasticity kernel
 
 c_model = True # True for custom compartmental model with explicit gradient
                  # calculations, False for Neuron model using fitted approximation
-num_spikes = 3   # max number of somatic spikes for which to compute gradients
+num_spikes = 1   # max number of somatic spikes for which to compute gradients
 np.random.seed(seed)
 
 
@@ -110,17 +110,19 @@ def get_grad(cell, t0, t1, dt, S_e, S_i, soln, stim):
         spike times F_e = [f_e, z_ind_e, z_e]
     """
     IC_sub = cell.set_IC(soln, stim, int(t0 / dt))
-    g_na_temp, g_k_temp = P['g_na'], P['g_k']
-    cell.P['g_na'] = 0
-    cell.P['g_k'] = 0
-    t_s, soln_s, stim_s = cell.simulate(t0, t1, dt, IC_sub, S_e, S_i)
+    # g_na_temp, g_k_temp = P['g_na'], P['g_k']
+    # cell.P['g_na'] = 0
+    # cell.P['g_k'] = 0
+    g_ion_temp = cell.g_ion
+    cell.g_ion[0][1] = 0.0
+    cell.g_ion[1][1] = 0.0
+    t_s, soln_s, stim_s = cell.simulate_L5(t0, t1, dt, IC_sub, S_e, S_i)
     Z_e = sequences.subsequence(S_e, t0, t1)
     Z_i = sequences.subsequence(S_i, t0, t1)
     Z_e, z_ind_e = sequences.rate2temp(Z_e)
     Z_i, z_ind_i = sequences.rate2temp(Z_i)
-    f_e, f_i = cell.grad_w(soln_s, stim_s, t_s, dt, Z_e, Z_i, z_ind_e, z_ind_i)
-    cell.P['g_na'] = g_na_temp
-    cell.P['g_k'] = g_k_temp
+    f_e, f_i = cell.grad_w_l5(soln_s, stim_s, t_s, dt, Z_e, Z_i, z_ind_e, z_ind_i)
+    cell.g_ion = g_ion_temp
     z_e = Z_e - t1
     z_i = Z_i - t1
     F_e = [f_e[:, -1], z_ind_e, z_e]
@@ -293,7 +295,7 @@ if len(t1) > 0:
     I_data = []
     for spike in range(min(num_spikes, len(t1))):
         if c_model:
-            F_e, F_i = get_grad(cell, t0[spike], t1[spike], dt, S_e,
+            F_e, F_i = get_grad(cell_comp, t0[spike], t1[spike], dt, S_e,
                                 S_i, soln, stim)
         else:
             F_e, F_i = get_k_grad(t0[spike], t1[spike], dt, S_e, S_i, v,
