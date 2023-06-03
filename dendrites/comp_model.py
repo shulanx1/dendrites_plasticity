@@ -728,7 +728,7 @@ class CModel:
                 gates[1, dend, k] = gates[1, dend, k-1] + (1 - np.exp(-dt/channels[2].htau(v[dend, k - 1])))*(channels[2].hinf(v[dend, k - 1]) - gates[1, dend, k-1])
             gates[2,n_dend, k] = gates[2, n_dend, k-1] + (1 - np.exp(-dt/channels[3].mtau(v[n_dend, k - 1])))*(channels[3].minf(v[n_dend, k - 1]) - gates[2, n_dend, k-1])
             if active_d:
-                gates[2, dend, k] = gates[2, dend, k-1] + (1 - np.exp(-dt/channels[4].mtau(v[dend, k - 1])))*(channels[4].minf(v[dend, k - 1]) - gates[3, dend, k-1])
+                gates[2, dend, k] = gates[2, dend, k-1] + (1 - np.exp(-dt/channels[4].mtau(v[dend, k - 1])))*(channels[4].minf(v[dend, k - 1]) - gates[2, dend, k-1])
             gates[3, n_dend, k] = gates[3, n_dend, k-1] + (1 - np.exp(-dt/channels[5].mtau(v[n_dend, k - 1])))*(channels[5].minf(v[n_dend, k - 1]) - gates[3, n_dend, k-1])
             gates[4, n_dend, k] = gates[4, n_dend, k-1] + (1 - np.exp(-dt/channels[5].htau(v[n_dend, k - 1])))*(channels[5].hinf(v[n_dend, k - 1]) - gates[4, n_dend, k-1])
             if active_d:
@@ -754,13 +754,13 @@ class CModel:
                 gates[13, dend, k] = gates[13, dend, k-1] + (1 - np.exp(-dt/channels[15].mtau(v[dend, k - 1])))*(channels[15].minf(v[dend, k - 1]) - gates[13, dend, k-1])
                 gates[14, dend, k] = gates[14, dend, k-1] + (1 - np.exp(-dt/channels[15].htau(v[dend, k - 1])))*(channels[15].hinf(v[dend, k - 1]) - gates[14, dend, k-1])
             gates[15, n_dend, k] = gates[15, n_dend, k-1] + (1 - np.exp(-dt/channels[16].mtau(gates[16, n_dend, k - 1])))*(channels[16].minf(gates[16, n_dend, k - 1]) - gates[15, n_dend, k-1])
-            if active_d:
-                gates[15, dend, k] = gates[15, dend, k-1] + (1 - np.exp(-dt/channels[17].mtau(v[dend, k - 1], gates[16, dend, k - 1])))*(channels[17].minf(v[dend, k - 1], gates[16, dend, k - 1]) - gates[15, dend, k-1])
+            # if active_d:
+            #     gates[15, dend, k] = gates[15, dend, k-1] + (1 - np.exp(-dt/channels[17].mtau(v[dend, k - 1], gates[16, dend, k - 1])))*(channels[17].minf(v[dend, k - 1], gates[16, dend, k - 1]) - gates[15, dend, k-1])
             for kk in n_dend:
                 ica[kk, k] = gcah[kk]*channels[5].g_s(gates[3, kk, k-1], gates[4, kk, k-1])*(v[kk, k-1] - channels[5].E) + gcal[kk]*channels[7].g_s(gates[5, kk, k-1], gates[6, kk, k-1])*(v[kk, k-1] - channels[7].E)
-            if active_d:
-                for kk in dend:
-                    ica[kk, k] = gcah[kk]*channels[6].g_s(gates[3, kk, k-1], gates[4, kk, k-1])*(v[kk, k-1] - channels[6].E) + gcal[kk]*channels[8].g_s(gates[5, kk, k-1], gates[6, kk, k-1])*(v[kk, k-1] - channels[8].E)
+            # if active_d:
+            #     for kk in dend:
+            #         ica[kk, k] = gcah[kk]*channels[6].g_s(gates[3, kk, k-1], gates[4, kk, k-1])*(v[kk, k-1] - channels[6].E) + gcal[kk]*channels[8].g_s(gates[5, kk, k-1], gates[6, kk, k-1])*(v[kk, k-1] - channels[8].E)
             gates[16,:,k] = channels[18].update(ica[:,k], gates[16, :, k-1], gamma, decay, dt)
 
 
@@ -1263,6 +1263,341 @@ class CModel:
                 print('%d th time point solved' % k)
         return f_e, f_i
 
+    def grad_w_l5_channels(self, soln, stim, t, dt, Z_e, Z_i, z_ind_e, z_ind_i):
+        """Compute gradients associated with individual input
+        spikes using solution from `simulate2'. Z_e and Z_i are expanded copies
+        of the input pattern between those times (one spike per synapse; see
+        `sequences.rate2temp`).
+
+        Parameters
+        ----------
+        soln : list
+            arrays of model states (voltage and gating variables)
+            [v, m, h, n, p]. See `simulate2`.
+        stim : list
+            arrays of synaptic conductance states and associated indices
+            [ind_e, ind_i, A_r, A_d, N_r, N_d, G_r, G_d]
+        t : ndarray
+            simulation time vector
+        dt : float
+            timestep from original forward simulation
+        Z_e, Z_i : array_like
+            presynaptic spike time for dummy copies of E and I synapses
+        z_ind_e, z_ind_i :
+            original indices of dummy synapses
+
+        Returns
+        -------
+        f_e, f_i : ndarray
+            dv_soma/dw for E and I synapses as a function of time
+        gates_Y_e, gates_Y_i: dgate/dw for E and I synapses as a function of time
+        """
+
+        P = self.P
+        E_r, E_e, E_i, E_na, E_k, E_hcn, tauA, tauN, tauG, active_d,tau_m, \
+        active_n, r_na = (P['E_r'], P['E_e'], P['E_i'], P['E_na'], P['E_k'], P['E_hcn'], \
+                    P['tauA'], P['tauN'], P['tauG'], P['active_d'],P['tau_m'],  P['active_n'], P['r_na'])
+        # [cm, gpas, gna, gkv, gcah, gcal, gih, gim, gnap, gkt, gkp, gsk,gamma, decay, dend, axon, apic, soma]  = self.insert_biophysical_L5()
+        g_ion = self.g_ion[:-1,:]
+        dend = self.dend
+        axon = self.axon
+        apic = self.apic
+        soma = self.soma
+        cm = self.cm
+
+        ind_e, ind_i = stim[0], stim[1]
+        M = self.Q.shape[0]
+        a_inds = np.arange(M)
+
+        M_active = len(a_inds)
+        ZA, ZN, ZG = build_stim(t, dt, Z_e, Z_i, tauA, tauN, tauG)
+
+        N_e = len(Z_e)
+        N_i = len(Z_i)
+        Hz_e = np.zeros((self.H_e.shape[0], len(z_ind_e)))
+        Hz_i = np.zeros((self.H_i.shape[0], len(z_ind_i)))
+        Hz_e[np.where(self.H_e)[0][z_ind_e], np.arange(len(z_ind_e))] = self.H_e[
+        np.where(self.H_e)[0][z_ind_e], np.where(self.H_e)[1][z_ind_e]]
+        Hz_i[np.where(self.H_i)[0][z_ind_i], np.arange(len(z_ind_i))] = self.H_i[
+        np.where(self.H_i)[0][z_ind_i], np.where(self.H_i)[1][z_ind_i]]
+        he_inds = (np.where(Hz_e)[0], np.where(Hz_e)[1])
+        hi_inds = (np.where(Hz_i)[0], np.where(Hz_i)[1] + N_e)
+
+        a_inds = np.arange(M)
+        M_active = len(a_inds)
+
+        v = np.zeros((M, len(t)))
+        gates = []
+
+        n_dend = np.asarray([i for i in a_inds if i not in dend])
+        v = soln[0]
+        gates = soln[1]
+        v_0 = v[:,0]
+
+        channels = [NaTs2_t(v_0[0]), NaTa_t(v_0[0]), na(v_0[0]), SKv3_1(v_0[0]), kv(v_0[0]), Ca_HVA(v_0[0]), ca(v_0[0]), Ca_LVAst(v_0[0]), it(v_0[0]), Ih(v_0[0]), Im(v_0[0]), Nap_Et2(v_0[0]), K_Tst(v_0[0]), kad(v_0[0]), K_Pst(v_0[0]), kap(v_0[0]), SK_E2(), kBK(v_0[0]), CaDynamics_E2()]
+
+        GA = stim[3] - stim[2]
+        GN = stim[5] - stim[4]
+        GG = stim[7] - stim[6]
+
+        w_e = self.w_e[ind_e]
+        w_i = self.w_i[ind_i]
+        H_e = self.H_e[:, ind_e]
+        H_i = self.H_i[:, ind_i]
+        dhQ = dt*(self.Q.T*1/cm).T
+
+
+        gates_a = np.zeros(gates.shape)
+        gates_a[0, n_dend, :] = channels[0].m_a(v[n_dend, :], gates[0, n_dend, :], gates[1, n_dend, :])
+        gates_a[1, n_dend, :] = channels[0].h_a(v[n_dend, :], gates[0, n_dend, :], gates[1, n_dend, :])
+        gates_a[0, axon, :] = channels[1].m_a(v[axon, :], gates[0, axon, :], gates[1, axon, :])
+        gates_a[1, axon, :] = channels[1].h_a(v[axon, :], gates[0, axon, :], gates[1, axon, :])
+        if active_d:
+            gates_a[0, dend, :] = channels[2].m_a(v[dend, :], gates[0, dend, :], gates[1, dend, :])
+            gates_a[1, dend, :] = channels[2].h_a(v[dend, :], gates[0, dend, :], gates[1, dend, :])
+        gates_a[2,n_dend, :] = channels[3].m_a(v[n_dend,:], gates[2,n_dend, :])
+        if active_d:
+            gates_a[2, dend, :] = channels[4].m_a(v[dend,:], gates[2,dend, :])
+        gates_a[3, n_dend, :] = channels[5].m_a(v[n_dend,:], gates[3, n_dend, :], gates[4, n_dend, :])
+        gates_a[4, n_dend, :] = channels[5].h_a(v[n_dend,:], gates[3, n_dend, :], gates[4, n_dend, :])
+        if active_d:
+            gates_a[3, dend, :] = channels[6].m_a(v[dend,:], gates[3, dend, :], gates[4, dend, :])
+            gates_a[4, dend, :] = channels[6].h_a(v[dend,:], gates[3, dend, :], gates[4, dend, :])
+        gates_a[5, n_dend, :] = channels[7].m_a(v[n_dend,:], gates[5, n_dend, :], gates[6, n_dend, :])
+        gates_a[6, n_dend, :] = channels[7].h_a(v[n_dend,:], gates[5, n_dend, :], gates[6, n_dend, :])
+        if active_d:
+            gates_a[5, dend, :] = channels[8].m_a(v[dend,:], gates[5, dend, :], gates[6, dend, :])
+            gates_a[6, dend, :] = channels[8].h_a(v[dend,:], gates[5, dend, :], gates[6, dend, :])
+        gates_a[7, :, :] = channels[9].m_a(v, gates[7, :, :])
+        gates_a[8, :, :] = channels[10].m_a(v, gates[8, :, :])
+        gates_a[9, axon, :] = channels[11].m_a(v[axon,:], gates[9, axon, :], gates[10, axon, :])
+        gates_a[10, axon, :] = channels[11].h_a(v[axon,:], gates[9, axon, :], gates[10, axon, :])
+        gates_a[11, axon, :] = channels[12].m_a(v[axon,:], gates[11, axon, :], gates[12, axon, :])
+        gates_a[12, axon, :] = channels[12].h_a(v[axon,:], gates[11, axon, :], gates[12, axon, :])
+        if active_d:
+            gates_a[11, dend, :] = channels[13].m_a(v[dend,:], gates[11, dend, :], gates[12, dend, :])
+            gates_a[12, dend, :] = channels[13].h_a(v[dend,:], gates[11, dend, :], gates[12, dend, :])
+        gates_a[13, axon, :] = channels[14].m_a(v[axon,:], gates[13, axon, :], gates[14, axon, :])
+        gates_a[14, axon, :] = channels[14].h_a(v[axon,:], gates[13, axon, :], gates[14, axon, :])
+        if active_d:
+            gates_a[13, dend, :] = channels[15].m_a(v[dend,:], gates[13, dend, :], gates[14, dend, :])
+            gates_a[14, dend, :] = channels[15].h_a(v[dend,:], gates[13, dend, :], gates[14, dend, :])
+
+        gates_b = np.zeros(gates.shape)
+        gates_b[0, n_dend, :] = channels[0].m_b(v[n_dend, :], gates[0, n_dend, :], gates[1, n_dend, :])
+        gates_b[1, n_dend, :] = channels[0].h_b(v[n_dend, :], gates[0, n_dend, :], gates[1, n_dend, :])
+        gates_b[0, axon, :] = channels[1].m_b(v[axon, :], gates[0, axon, :], gates[1, axon, :])
+        gates_b[1, axon, :] = channels[1].h_b(v[axon, :], gates[0, axon, :], gates[1, axon, :])
+        if active_d:
+            gates_b[0, dend, :] = channels[2].m_b(v[dend, :], gates[0, dend, :], gates[1, dend, :])
+            gates_b[1, dend, :] = channels[2].h_b(v[dend, :], gates[0, dend, :], gates[1, dend, :])
+        gates_b[2,n_dend, :] = channels[3].m_b(v[n_dend,:], gates[2,n_dend, :])
+        if active_d:
+            gates_b[2, dend, :] = channels[4].m_b(v[dend,:], gates[2,dend, :])
+        gates_b[3, n_dend, :] = channels[5].m_b(v[n_dend,:], gates[3, n_dend, :], gates[4, n_dend, :])
+        gates_b[4, n_dend, :] = channels[5].h_b(v[n_dend,:], gates[3, n_dend, :], gates[4, n_dend, :])
+        if active_d:
+            gates_b[3, dend, :] = channels[6].m_b(v[dend,:], gates[3, dend, :], gates[4, dend, :])
+            gates_b[4, dend, :] = channels[6].h_b(v[dend,:], gates[3, dend, :], gates[4, dend, :])
+        gates_b[5, n_dend, :] = channels[7].m_b(v[n_dend,:], gates[5, n_dend, :], gates[6, n_dend, :])
+        gates_b[6, n_dend, :] = channels[7].h_b(v[n_dend,:], gates[5, n_dend, :], gates[6, n_dend, :])
+        if active_d:
+            gates_b[5, dend, :] = channels[8].m_b(v[dend,:], gates[5, dend, :], gates[6, dend, :])
+            gates_b[6, dend, :] = channels[8].h_b(v[dend,:], gates[5, dend, :], gates[6, dend, :])
+        gates_b[7, :, :] = channels[9].m_b(v, gates[7, :, :])
+        gates_b[8, :, :] = channels[10].m_b(v, gates[8, :, :])
+        gates_b[9, axon, :] = channels[11].m_b(v[axon,:], gates[9, axon, :], gates[10, axon, :])
+        gates_b[10, axon, :] = channels[11].h_b(v[axon,:], gates[9, axon, :], gates[10, axon, :])
+        gates_b[11, axon, :] = channels[12].m_b(v[axon,:], gates[11, axon, :], gates[12, axon, :])
+        gates_b[12, axon, :] = channels[12].h_b(v[axon,:], gates[11, axon, :], gates[12, axon, :])
+        if active_d:
+            gates_b[11, dend, :] = channels[13].m_b(v[dend,:], gates[11, dend, :], gates[12, dend, :])
+            gates_b[12, dend, :] = channels[13].h_b(v[dend,:], gates[11, dend, :], gates[12, dend, :])
+        gates_b[13, axon, :] = channels[14].m_b(v[axon,:], gates[13, axon, :], gates[14, axon, :])
+        gates_b[14, axon, :] = channels[14].h_b(v[axon,:], gates[13, axon, :], gates[14, axon, :])
+        if active_d:
+            gates_b[13, dend, :] = channels[15].m_b(v[dend,:], gates[13, dend, :], gates[14, dend, :])
+            gates_b[14, dend, :] = channels[15].h_b(v[dend,:], gates[13, dend, :], gates[14, dend, :])
+
+        gates_c = np.zeros(gates.shape)
+        gates_c[0, n_dend, :] = channels[0].m_c(v[n_dend, :], gates[0, n_dend, :], gates[1, n_dend, :])
+        gates_c[1, n_dend, :] = channels[0].h_c(v[n_dend, :], gates[0, n_dend, :], gates[1, n_dend, :])
+        gates_c[0, axon, :] = channels[1].m_c(v[axon, :], gates[0, axon, :], gates[1, axon, :])
+        gates_c[1, axon, :] = channels[1].h_c(v[axon, :], gates[0, axon, :], gates[1, axon, :])
+        if active_d:
+            gates_c[0, dend, :] = channels[2].m_c(v[dend, :], gates[0, dend, :], gates[1, dend, :])
+            gates_c[1, dend, :] = channels[2].h_c(v[dend, :], gates[0, dend, :], gates[1, dend, :])
+        gates_c[2,n_dend, :] = channels[3].m_c(v[n_dend,:], gates[2,n_dend, :])
+        if active_d:
+            gates_c[2, dend, :] = channels[4].m_c(v[dend,:], gates[2,dend, :])
+        gates_c[3, n_dend, :] = channels[5].m_c(v[n_dend,:], gates[3, n_dend, :], gates[4, n_dend, :])
+        gates_c[4, n_dend, :] = channels[5].h_c(v[n_dend,:], gates[3, n_dend, :], gates[4, n_dend, :])
+        if active_d:
+            gates_c[3, dend, :] = channels[6].m_c(v[dend,:], gates[3, dend, :], gates[4, dend, :])
+            gates_c[4, dend, :] = channels[6].h_c(v[dend,:], gates[3, dend, :], gates[4, dend, :])
+        gates_c[5, n_dend, :] = channels[7].m_c(v[n_dend,:], gates[5, n_dend, :], gates[6, n_dend, :])
+        gates_c[6, n_dend, :] = channels[7].h_c(v[n_dend,:], gates[5, n_dend, :], gates[6, n_dend, :])
+        if active_d:
+            gates_c[5, dend, :] = channels[8].m_c(v[dend,:], gates[5, dend, :], gates[6, dend, :])
+            gates_c[6, dend, :] = channels[8].h_c(v[dend,:], gates[5, dend, :], gates[6, dend, :])
+        gates_c[7, :, :] = channels[9].m_c(v, gates[7, :, :])
+        gates_c[8, :, :] = channels[10].m_c(v, gates[8, :, :])
+        gates_c[9, axon, :] = channels[11].m_c(v[axon,:], gates[9, axon, :], gates[10, axon, :])
+        gates_c[10, axon, :] = channels[11].h_c(v[axon,:], gates[9, axon, :], gates[10, axon, :])
+        gates_c[11, axon, :] = channels[12].m_c(v[axon,:], gates[11, axon, :], gates[12, axon, :])
+        gates_c[12, axon, :] = channels[12].h_c(v[axon,:], gates[11, axon, :], gates[12, axon, :])
+        if active_d:
+            gates_c[11, dend, :] = channels[13].m_c(v[dend,:], gates[11, dend, :], gates[12, dend, :])
+            gates_c[12, dend, :] = channels[13].h_c(v[dend,:], gates[11, dend, :], gates[12, dend, :])
+        gates_c[13, axon, :] = channels[14].m_c(v[axon,:], gates[13, axon, :], gates[14, axon, :])
+        gates_c[14, axon, :] = channels[14].h_c(v[axon,:], gates[13, axon, :], gates[14, axon, :])
+        if active_d:
+            gates_c[13, dend, :] = channels[15].m_c(v[dend,:], gates[13, dend, :], gates[14, dend, :])
+            gates_c[14, dend, :] = channels[15].h_c(v[dend,:], gates[13, dend, :], gates[14, dend, :])
+
+        gates_d = np.zeros(gates.shape)
+        gates_d[0, n_dend, :] = channels[0].m_d(v[n_dend, :], gates[0, n_dend, :], gates[1, n_dend, :])
+        gates_d[1, n_dend, :] = channels[0].h_d(v[n_dend, :], gates[0, n_dend, :], gates[1, n_dend, :])
+        gates_d[0, axon, :] = channels[1].m_d(v[axon, :], gates[0, axon, :], gates[1, axon, :])
+        gates_d[1, axon, :] = channels[1].h_d(v[axon, :], gates[0, axon, :], gates[1, axon, :])
+        if active_d:
+            gates_d[0, dend, :] = channels[2].m_d(v[dend, :], gates[0, dend, :], gates[1, dend, :])
+            gates_d[1, dend, :] = channels[2].h_d(v[dend, :], gates[0, dend, :], gates[1, dend, :])
+        gates_d[2,n_dend, :] = channels[3].m_d(v[n_dend,:], gates[2,n_dend, :])
+        if active_d:
+            gates_d[2, dend, :] = channels[4].m_d(v[dend,:], gates[2,dend, :])
+        gates_d[3, n_dend, :] = channels[5].m_d(v[n_dend,:], gates[3, n_dend, :], gates[4, n_dend, :])
+        gates_d[4, n_dend, :] = channels[5].h_d(v[n_dend,:], gates[3, n_dend, :], gates[4, n_dend, :])
+        if active_d:
+            gates_d[3, dend, :] = channels[6].m_d(v[dend,:], gates[3, dend, :], gates[4, dend, :])
+            gates_d[4, dend, :] = channels[6].h_d(v[dend,:], gates[3, dend, :], gates[4, dend, :])
+        gates_d[5, n_dend, :] = channels[7].m_d(v[n_dend,:], gates[5, n_dend, :], gates[6, n_dend, :])
+        gates_d[6, n_dend, :] = channels[7].h_d(v[n_dend,:], gates[5, n_dend, :], gates[6, n_dend, :])
+        if active_d:
+            gates_d[5, dend, :] = channels[8].m_d(v[dend,:], gates[5, dend, :], gates[6, dend, :])
+            gates_d[6, dend, :] = channels[8].h_d(v[dend,:], gates[5, dend, :], gates[6, dend, :])
+        gates_d[7, :, :] = channels[9].m_d(v, gates[7, :, :])
+        gates_d[8, :, :] = channels[10].m_d(v, gates[8, :, :])
+        gates_d[9, axon, :] = channels[11].m_d(v[axon,:], gates[9, axon, :], gates[10, axon, :])
+        gates_d[10, axon, :] = channels[11].h_d(v[axon,:], gates[9, axon, :], gates[10, axon, :])
+        gates_d[11, axon, :] = channels[12].m_d(v[axon,:], gates[11, axon, :], gates[12, axon, :])
+        gates_d[12, axon, :] = channels[12].h_d(v[axon,:], gates[11, axon, :], gates[12, axon, :])
+        if active_d:
+            gates_d[11, dend, :] = channels[13].m_d(v[dend,:], gates[11, dend, :], gates[12, dend, :])
+            gates_d[12, dend, :] = channels[13].h_d(v[dend,:], gates[11, dend, :], gates[12, dend, :])
+        gates_d[13, axon, :] = channels[14].m_d(v[axon,:], gates[13, axon, :], gates[14, axon, :])
+        gates_d[14, axon, :] = channels[14].h_d(v[axon,:], gates[13, axon, :], gates[14, axon, :])
+        if active_d:
+            gates_d[13, dend, :] = channels[15].m_d(v[dend,:], gates[13, dend, :], gates[14, dend, :])
+            gates_d[14, dend, :] = channels[15].h_d(v[dend,:], gates[13, dend, :], gates[14, dend, :])
+
+
+        g_a_ion = np.zeros((g_ion.shape[0], M, gates.shape[2]))
+
+        g_a_ion[0,n_dend,:] = channels[0].g_s(gates[0, n_dend,:], gates[1, n_dend,:])      # na
+        g_a_ion[0,axon,:] = channels[1].g_s(gates[0, axon,:], gates[1, axon,:])
+        if active_d:
+            g_a_ion[0,dend,:] = channels[2].g_s(gates[0, dend,:], gates[1, dend,:])
+
+        g_a_ion[1,n_dend,:] = channels[3].g_s(gates[2, n_dend,:])       #kv
+        if active_d:
+            g_a_ion[1,dend,:] = channels[4].g_s(gates[2, dend,:])
+
+        g_a_ion[2,n_dend,:] = channels[5].g_s(gates[3, n_dend,:], gates[4, n_dend,:])     #cah
+        if active_d:
+            g_a_ion[2,dend,:] = channels[6].g_s(gates[3, dend,:], gates[4, dend,:])
+
+        g_a_ion[3,n_dend,:] = channels[7].g_s(gates[5, n_dend,:], gates[6, n_dend,:])     #cal
+        if active_d:
+            g_a_ion[3,dend,:] = channels[8].g_s(gates[5, dend,:], gates[6, dend,:])
+
+        g_a_ion[4,:,:] = channels[9].g_s(gates[7, :,:])       #ih
+
+        g_a_ion[5,:,:] = channels[10].g_s(gates[8, :,:])       #im
+
+        g_a_ion[6,axon,:] = channels[11].g_s(gates[9, axon,:], gates[10, axon,:])  #nap
+
+        g_a_ion[7,n_dend,:] = channels[12].g_s(gates[11, n_dend,:], gates[12, n_dend,:])     #kad
+        if active_d:
+            g_a_ion[7,dend,:] = channels[13].g_s(gates[11, dend,:], gates[12, dend,:])
+
+        g_a_ion[8,n_dend,:] = channels[14].g_s(gates[13, n_dend,:], gates[14, n_dend,:])     #kap
+        if active_d:
+            g_a_ion[8,dend,:] = channels[15].g_s(gates[13, dend,:], gates[14, dend,:])
+
+
+
+        if active_n:
+            g_s = (H_e@(w_e/(1 + r_na)*GA.T).T + H_e@(w_e*r_na/(1 + r_na)*GN.T).T*sigma(v) -
+                H_e@(w_e*r_na/(1 + r_na)*GN.T).T*d_sigma(v)*(E_e - v) +
+                H_i@(w_i*GG.T).T)
+            g_s = (g_s.T + cm/tau_m).T
+            gw_e = 1/(1 + r_na)*(Hz_e.T@(E_e - v))*ZA + r_na/(1 + r_na)*(Hz_e.T@(
+            (E_e - v)*sigma(v)))*ZN
+        else:
+            g_s = (H_e@(w_e/(1 + r_na)*GA.T).T + H_e@(w_e*r_na/(1 + r_na)*GN.T).T +
+                H_i@(w_i*GG.T).T)
+            g_s = (g_s.T + cm/tau_m).T
+            gw_e = 1/(1 + r_na)*(Hz_e.T@(E_e - v))*ZA + r_na/(1 + r_na)*(Hz_e.T@(
+            E_e - v))*ZN
+
+        for k in range(g_a_ion.shape[0]):
+            g_s += (g_ion[k]*g_a_ion[k,:,:].T).T
+
+        gw_i = (Hz_i.T@(E_i - v))*ZG
+
+        gates_Y = np.zeros((gates.shape[0], N_e + N_i, M))
+        c = np.zeros((g_ion.shape[0], M,N_e + N_i, v.shape[1]))
+        B = np.zeros((M, N_e + N_i))
+        f_soma = B[0, :]
+        f_e = np.zeros((M,N_e,v.shape[1]))
+        f_i = np.zeros((M,N_i,v.shape[1]))
+        gates_b1 = gates_b
+        gates_b1[np.where(gates_b1==0)] = np.inf
+        for k in range(1, v.shape[1]):
+            # Y_m += (a_m[:, k-1]/b_m[:, k-1]*B[a_inds, :].T - Y_m)*(
+            #         1 - np.exp(-dt*b_m[:, k-1]))
+            # Y_h += (a_h[:, k-1]/b_h[:, k-1]*B[a_inds, :].T - Y_h)*(
+            #         1 - np.exp(-dt*b_h[:, k-1]))
+            # Y_n += (a_n[:, k-1]/b_n[:, k-1]*B[a_inds, :].T - Y_n)*(
+            #         1 - np.exp(-dt*b_n[:, k-1]))
+            # Y_p += (a_p[:, k-1]/b_p[:, k-1]*B[a_inds, :].T - Y_p)*(
+            #         1 - np.exp(-dt*b_p[:, k-1]))
+            # Y_hcn += (a_hcn[:, k-1]/b_hcn[:, k-1]*B[a_inds, :].T - Y_hcn)*(
+            #         1 - np.exp(-dt*b_hcn[:, k-1]))
+            for kk in range(gates.shape[0]):
+                gates_Y[kk] += (gates_a[kk, :, k-1]/gates_b[kk, :, k-1]*B.T - gates_Y[kk])*(1 - np.exp(-dt*gates_b[kk, :, k-1]))
+            A = np.diag(1 + dt/cm*g_s[:, k]) - dhQ
+            B[he_inds] += dt/cm[self.seg_e[z_ind_e]]*gw_e[:, k]
+            B[hi_inds] += dt/cm[self.seg_i[z_ind_i]]*gw_i[:, k]
+            Y_temp = np.zeros(B.shape)
+            for kk in range(gates.shape[0]):
+                Y_temp += (gates_c[kk,:,k]*gates_Y[kk,:,:]).T
+            B[a_inds, :] += (dt/cm[a_inds]*Y_temp.T).T
+            solve_grad(A, B, self.g_ops, self.f_ops)
+            f_e[:,:, k] = B[:,:N_e]
+            f_i[:,:, k] = B[:,N_e:]
+            c1_temp = np.zeros((gates.shape[0], M, N_e + N_i))
+            for kk in range(gates.shape[0]):
+                c1_temp[kk,:,:] = (gates_d[kk,:,k]*gates_Y[kk,:,:]).T
+            c_temp = np.zeros((g_ion.shape[0], M, N_e + N_i))
+            c_temp[0,:,:] = c1_temp[0, :,:] + c1_temp[1, :,:]      # na
+            c_temp[1,:,:] = c1_temp[2, :,:]       #kv
+            c_temp[2,:,:] = c1_temp[3, :,:] +  c1_temp[4, :,:]     #cah
+            c_temp[3,:,:] = c1_temp[5, :,:] + c1_temp[6, :,:]     #cal
+            c_temp[4,:,:] = c1_temp[7, :,:]       #ih
+            c_temp[5,:,:] = c1_temp[8, :,:]       #im
+            c_temp[6,:,:] = c1_temp[9, :,:] + c1_temp[10, :,:]  #nap
+            c_temp[7,:,:] = c1_temp[11, :,:]+ c1_temp[12, :,:]    #kad
+            c_temp[8,:,:] = c1_temp[13, :,:] +  c1_temp[14, :,:]     #kap
+            c[:,:,:,k] = c_temp
+
+            if self.verbool:
+                print('%d th time point solved' % k)
+        c_e = c[:, :,:N_e, :]
+        c_i = c[:, :,:N_i, :]
+        return f_e, f_i, c_e, c_i
+
 @nb.jit(nopython=True, cache=True)
 def kernel(t, tau_r, tau_d):
     """Returns value of double-exponential synaptic kernel.
@@ -1580,6 +1915,28 @@ def solve(Q, b, g_ops, f_ops):
     forward_sub(Q, x, f_ops)
     return x
 
+
+# def solve_grad_l5(Q, B, g_ops, f_ops):
+#     """Solve linear system of matrix equations QX=B with Gaussian elimination
+#     (using v[0] as soma requires clearing upper triangle first). Note: modifies
+#     B in place to produce solution X.
+
+#     Parameters
+#     ----------
+#     Q : ndarray
+#         coefficient matrix
+#     B : ndarray
+#         right-hand side
+#     g_ops : ndarray
+#         sequence of operations for Gaussian elimination
+#     f_ops : ndarray
+#         sequence of operations for forward substitution
+
+#     """
+#     gauss_elim_mat(Q, B, g_ops)
+#     X = B
+#     forward_sub_mat(Q, X, f_ops)
+#     return X
 
 def solve_grad(Q, B, g_ops, f_ops):
     """Solve linear system of matrix equations QX=B with Gaussian elimination

@@ -2,6 +2,10 @@
 Fit polynomials to STA data and interpolate over unvisited areas of the
 parameter space. Requires the output of 'process_sta'.
 """
+import sys
+import os
+wd = 'E:\\Code\\dendrites_plasticity' # working directory
+sys.path.insert(1, wd)
 
 import numpy as np
 import pickle
@@ -10,14 +14,15 @@ from matplotlib import pyplot
 
 from dendrites import kernels
 
-results = './outputs/sta/sta_act1_proc'
-kernel_fit = './outputs/kernel_fit_act1'
-save_fit = True
+model = 'l5'
+results = wd + '\\outputs\\sta\\sta_' + model + '_proc'
+kernel_fit = wd + '\\outputs\\kernel_fit_' + model
+save_fit = False
 cv = False  # fits on 75% of data when True.
 
-t = np.arange(0, 101)  # time and voltage vectors for binning
-v = np.arange(-80, 1)
-
+t = np.arange(0, 100, 2)  # time and voltage vectors for binning
+# v = np.arange(-76, -65)
+v = np.arange(-75, 0, 2)
 
 def mean(x):
     if len(x) > 0:
@@ -113,10 +118,10 @@ if cv:
     I_b_m, p_ib, z_ib = fit(t, v, I_b[:int(I_b.shape[0]*3/4), :], 8, 8)
     I_a_m, p_ia, z_ia = fit(t, v, I_a[:int(I_a.shape[0]*3/4), :], 8, 8)
 else:
-    E_b_m, p_eb, z_eb = fit(t, v, E_b, 8, 8)
-    E_a_m, p_ea, z_ea = fit(t, v, E_a, 8, 8)
-    I_b_m, p_ib, z_ib = fit(t, v, I_b, 8, 8)
-    I_a_m, p_ia, z_ia = fit(t, v, I_a, 8, 8)
+    E_b_m, p_eb, z_eb = fit(t, v, E_b, 4, 4)
+    E_a_m, p_ea, z_ea = fit(t, v, E_a, 4, 4)
+    I_b_m, p_ib, z_ib = fit(t, v, I_b, 4, 4)
+    I_a_m, p_ia, z_ia = fit(t, v, I_a, 4, 4)
 
 if save_fit:
     data = [E_b_m,  E_a_m, I_b_m, I_a_m]

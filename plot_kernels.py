@@ -1,16 +1,23 @@
 """Plot 2d STA plasticity kernels for active or passive models
 fitted with fit_kernels.py """
 
+import sys
+import os
+wd = 'E:\\Code\\dendrites_plasticity' # working directory
+sys.path.insert(1, wd)
+
 from matplotlib import pyplot
 import numpy as np
 import pickle
 
 from dendrites import kernels
 
-kernel_fit = './input/kernel_fit_act1'
-
-t = np.arange(0, 101)
-v = np.arange(-80, 1)
+model = 'l5'
+# kernel_fit = wd + '\\outputs\\kernel_fit_' + model
+kernel_fit = wd + '\\input\\kernel_fit_' + model
+t = np.arange(0, 100)
+v = np.arange(-70, 1)
+# v = np.arange(-76, -65)
 
 
 def display_kernel(z, min, max, ax, map):
@@ -43,6 +50,22 @@ def display_kernel(z, min, max, ax, map):
     ax.tick_params(labelsize=12)
     return im
 
+def z_norm(z):
+    """
+    normalize the kernal parameter for display
+
+    Parameters
+    ----------
+    z : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
+    return np.sign(z)*(abs(z) - np.min(abs(z)))/(np.max(abs(z)) - np.min(abs(z)))
+
 
 _, params = pickle.load(open(kernel_fit, 'rb'))
 p_eb, p_ea, p_ib, p_ia = params
@@ -56,6 +79,10 @@ z_ia = kernels.eval_poly_mesh(t, v, p_ia)*1e-3
 fig, ax = pyplot.subplots(2, 2)
 im_b = display_kernel(z_eb, 0, np.max(z_eb), ax[0, 0], 'viridis')
 im_a = display_kernel(z_ea, 0, np.max(z_ea), ax[0, 1], 'viridis')
+# z_eb_1 = z_norm(z_eb)
+# z_ea_1 = z_norm(z_ea)
+# im_b = display_kernel(z_eb_1, 0, np.max(z_eb_1), ax[0, 0], 'viridis')
+# im_a = display_kernel(z_ea_1, 0, np.max(z_ea_1), ax[0, 1], 'viridis')
 ax[0, 0].set_title('Excitatory: basal', fontsize=12)
 ax[0, 1].set_title('Excitatory: apical', fontsize=12)
 cb_b = fig.colorbar(im_b, ax=ax[0, 0],  ticks=[0, np.round(np.max(z_eb)-0.01, 2)],
@@ -66,6 +93,10 @@ cb_a = fig.colorbar(im_a, ax=ax[0, 1],  ticks=[0, np.round(np.max(z_ea)-0.01, 2)
                     +' (mVnS' + r'$^{-\mathregular{1}}$)')
 im2_b = display_kernel(z_ib, np.min(z_ib), 0, ax[1, 0], 'viridis_r')
 im2_a = display_kernel(z_ia, np.min(z_ia), 0, ax[1, 1], 'viridis_r')
+# z_ib_1 = z_norm(z_ib)
+# z_ia_1 = z_norm(z_ia)
+# im2_b = display_kernel(z_ib_1, np.min(z_ib_1), 0, ax[1, 0], 'viridis_r')
+# im2_a = display_kernel(z_ia_1, np.min(z_ia_1), 0, ax[1, 1], 'viridis_r')
 ax[1, 0].set_title('Inhibitory: basal', fontsize=12)
 ax[1, 1].set_title('Inhibitory: apical', fontsize=12)
 cb_ib = fig.colorbar(im2_b, ax=ax[1, 0], ticks=[np.round(np.min(z_ib)+0.01, 2), 0],

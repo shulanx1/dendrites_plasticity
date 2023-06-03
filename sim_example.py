@@ -12,6 +12,7 @@ sys.path.insert(1, wd)
 import numpy as np
 import pickle
 
+
 from matplotlib import pyplot
 import matplotlib.pyplot as plt
 from neuron import h
@@ -27,8 +28,7 @@ from dendrites import parametersL5_Hay
 P = parametersL5_Hay.init_params(wd)
 
 
-T = 200        # simulation time (ms)
-dt = 0.1        # time step (ms)
+T = 1000        # simulation time (ms)
 v_init = -75    # initial voltage (mV)
 seed = 1        # random seed
 stim_dur = 300							# stimulus duration
@@ -44,15 +44,15 @@ input = 'opt'
 param_sets = {'rate':[40., 0, 0.], 'temp':[2.5, 1, 1.], 'opt':[20., 1, 1.]}
 r_max, num_t, s = param_sets[input]
 mu = 0
-sigma = 2
+sigma = 1.5
 w_jitter = 0.5      # perturbation to initial weights
 
 
-kernel_fit = wd + "\\input\\kernel_fit_act1"  # fitted plasticity kernel
+kernel_fit = wd + "\\input\\kernel_fit_l5"  # fitted plasticity kernel
 # P = parameters1.init_params(wd)            # stores model parameters in dict P
 
 
-c_model = True # True for custom compartmental model with explicit gradient
+c_model = False # True for custom compartmental model with explicit gradient
                  # calculations, False for Neuron model using fitted approximation
 num_spikes = 1   # max number of somatic spikes for which to compute gradients
 np.random.seed(seed)
@@ -82,6 +82,29 @@ def spike_times(dt, v):
         t_spike = np.array([])
     return t_spike
 
+def spike_times_l5(dt, v):
+    """ Get spike times from voltage trace.
+
+    Parameters
+    ----------
+    dt : float
+        simulation timestep
+    v : ndarray
+        compartment voltages v=v[compartment, time]
+    Returns
+    -------
+    t_spike : ndarray
+        spike times
+    """
+    thresh_cross = np.where(v[1, :] > 0)[0]
+    if thresh_cross.size > 0:
+        spikes = np.where(np.diff(thresh_cross) > 1)[0] + 1
+        spikes = np.insert(spikes, 0, 0)
+        spikes = thresh_cross[spikes]
+        t_spike = spikes*dt - 2
+    else:
+        t_spike = np.array([])
+    return t_spike
 
 def get_grad(cell, t0, t1, dt, S_e, S_i, soln, stim):
     """ Get gradients (dv_soma/dw) for individual synaptic activations by
@@ -113,21 +136,29 @@ def get_grad(cell, t0, t1, dt, S_e, S_i, soln, stim):
     # g_na_temp, g_k_temp = P['g_na'], P['g_k']
     # cell.P['g_na'] = 0
     # cell.P['g_k'] = 0
-    g_ion_temp = cell.g_ion
-    cell.g_ion[0][1] = 0.0
-    cell.g_ion[1][1] = 0.0
+    # g_ion_temp = cell.g_ion
+    # cell.g_ion[0][1] = 0.0
+    # cell.g_ion[1][1] = 0.0
     t_s, soln_s, stim_s = cell.simulate_L5(t0, t1, dt, IC_sub, S_e, S_i)
+    # t_s = np.arange(0, t1-t0, dt)
+    # soln_s = []
+    # stim_s = []
+    # for i in soln:
+    #     soln_s.append(i[:,int(t0/dt):int(t1/dt)])
+    # for i in stim:
+    #     stim_s.append(i[:,int(t0/dt):int(t1/dt)])
     Z_e = sequences.subsequence(S_e, t0, t1)
     Z_i = sequences.subsequence(S_i, t0, t1)
     Z_e, z_ind_e = sequences.rate2temp(Z_e)
     Z_i, z_ind_i = sequences.rate2temp(Z_i)
     f_e, f_i = cell.grad_w_l5(soln_s, stim_s, t_s, dt, Z_e, Z_i, z_ind_e, z_ind_i)
-    cell.g_ion = g_ion_temp
+    # cell.g_ion = g_ion_temp
     z_e = Z_e - t1
     z_i = Z_i - t1
     F_e = [f_e[:, -1], z_ind_e, z_e]
     F_i = [f_i[:, -1], z_ind_i, z_i]
-    return F_e, F_i
+    v_pre1 = soln_s[0][:, -1]
+    return v_pre1, F_e, F_i
 
 
 def get_k_grad(t0, t1, dt, S_e, S_i, v, kernel_params):
@@ -269,7 +300,10 @@ h('forall pop_section()')
 h('forall delete_section()')
 rates_e, rates_i = sequences.lognormal_rates(1, P['N_e'], P['N_i'], mu, sigma)
 w_e, w_i = init_weights(P)
+
 S_e, S_i = init_rand_sequence(rates_e[0], rates_i[0], T)
+c_model = True
+T = 500
 if c_model:
     cell_comp = comp_model.CModel(P, verbool = True)
     t, soln, stim = cell_comp.simulate_L5(0, T, dt, v_init, S_e, S_i)
@@ -287,21 +321,29 @@ else:
     plt.plot(t, v[1])
 
 #%%### Compute Gradients ###
+
 t_window = 100  # synaptic plasticity window (fixed parameter)
-t1 = spike_times(dt, v)
-if len(t1) > 0:
+t_spikes = spike_times_l5(dt, v)
+isi = np.diff(t_spikes)
+count = 0
+if len(t_spikes) > 0:
+    incl = np.where(np.diff(np.insert(t_spikes, 0, 0)) > t_window)[0]
+    t1 = t_spikes[incl]
     t0 = t1 - t_window
     E_data = []
     I_data = []
-    for spike in range(min(num_spikes, len(t1))):
+    for spike in range(len(t1)):
+        if count >= num_spikes:
+            break
         if c_model:
-            F_e, F_i = get_grad(cell_comp, t0[spike], t1[spike], dt, S_e,
+            v_pre, F_e, F_i = get_grad(cell_comp, t0[spike], t1[spike], dt, S_e,
                                 S_i, soln, stim)
         else:
             F_e, F_i = get_k_grad(t0[spike], t1[spike], dt, S_e, S_i, v,
                                   kernel_params)
         E_data.append(F_e)
         I_data.append(F_i)
+        count = count + 1
 
 ### Plot Results ###
 fig, ax = pyplot.subplots(figsize=(8, 2.5))
@@ -318,8 +360,12 @@ ax.yaxis.set_ticks_position('left')
 ax.xaxis.set_ticks_position('bottom')
 pyplot.tight_layout()
 
-if len(t1) > 0:
-    i_positions, index, boundaries = plot_raster.raster_params(cell)
+if count > 0:
+    if c_model:
+        i_positions, index, boundaries = plot_raster.raster_params(cell_comp)
+    else:
+        i_positions, index, boundaries = plot_raster.raster_params(cell)
+    index = list(np.arange(2000))
     for e_dat, i_dat in zip(E_data, I_data):
         f_e, e_ind, s_e = e_dat
         f_i, i_ind, s_i = i_dat

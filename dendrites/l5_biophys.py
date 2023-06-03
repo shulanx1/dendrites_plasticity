@@ -145,6 +145,12 @@ class NaTa_t:
         """
         return (m**3)*(self.E - v)
 
+    def m_d(self, v, m, h):
+        return 3*(m**2*h)
+
+    def h_d(self, v, m, h):
+        return m**3
+
 
 class NaTs2_t:
     def __init__(self, v, E = 50.0):
@@ -297,6 +303,12 @@ class NaTs2_t:
         """
         return (m**3)*(self.E - v)
 
+    def m_d(self, v, m, h):
+        return 3*(m**2*h)
+
+    def h_d(self, v, m, h):
+        return m**3
+
 
 class Nap_Et2:
     def __init__(self, v, E = 50.0):
@@ -440,6 +452,12 @@ class Nap_Et2:
         """
         return (m**3)*(self.E - v)
 
+    def m_d(self, v, m, h):
+        return 3*(m**2*h)
+
+    def h_d(self, v, m, h):
+        return m**3
+
 class SKv3_1:
     def __init__(self, v, E = -85.0):
         self.m = self.minf(v)
@@ -492,6 +510,9 @@ class SKv3_1:
 
         """
         return self.E - v
+
+    def m_d(self, v, m):
+        return 1
 
 class Im:
     def __init__(self, v, E = -85.0):
@@ -573,6 +594,9 @@ class Im:
         """
         return self.E - v
 
+    def m_d(self, v, m):
+        return 1
+
 class Ih:
     def __init__(self, v, E = -45.0):
         self.m = self.minf(v)
@@ -638,6 +662,13 @@ class Ih:
 
         """
         return self.E - v
+
+    def m_d(self, v, m):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_m
+
+        """
+        return 1
 
 class Ca_HVA:
     def __init__(self, v, E = 127.0):
@@ -782,6 +813,20 @@ class Ca_HVA:
         """
         return (m**2)*(self.E - v)
 
+    def m_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_m
+
+        """
+        return 2*(m*h)
+
+    def h_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_h
+
+        """
+        return (m**2)
+
 class Ca_LVAst:
     def __init__(self, v, E = 127.0):
         self.m = self.minf(v)
@@ -873,6 +918,20 @@ class Ca_LVAst:
 
         """
         return (m**2)*(self.E - v)
+
+    def m_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_m
+
+        """
+        return 2*(m*h)
+
+    def h_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_h
+
+        """
+        return (m**2)
 
 class K_Pst:
     def __init__(self, v, E = -85.0):
@@ -1015,6 +1074,20 @@ class K_Pst:
         """
         return (m**2)*(self.E - v)
 
+    def m_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_m
+
+        """
+        return 2*(m*h)
+
+    def h_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_h
+
+        """
+        return (m**2)
+
 class K_Tst:
     def __init__(self, v, E = -85.0):
         self.m = self.minf(v)
@@ -1114,6 +1187,20 @@ class K_Tst:
 
         """
         return (m**4)*(self.E - v)
+
+    def m_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_m
+
+        """
+        return 4*(m**3*h)
+
+    def h_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_h
+
+        """
+        return (m**4)
 
 class na:
     def __init__(self, v, E = 50.0):
@@ -1251,6 +1338,20 @@ class na:
         """
         return (m**3)*(self.E - v)
 
+    def m_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_m
+
+        """
+        return 3*(m**2*h)
+
+    def h_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_h
+
+        """
+        return (m**3)
+
 class kv:
     def __init__(self, v, E = -85.0):
         self.m = self.minf(v)
@@ -1330,6 +1431,13 @@ class kv:
         """
         return (self.E - v)
 
+    def m_d(self, v, m):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_m
+
+        """
+        return 1
+
 class kad:
     def __init__(self, v, E = -85.0):
         self.m = self.minf(v)
@@ -1360,7 +1468,9 @@ class kad:
         return 1e-3*37.78*0.29*self.malpha(v)*(zeta + (v + 1)/5*np.exp((v + 40)/5)/(1 + np.exp((v + 40)/5))**2)
 
     def mtau(self,v):
-        return self.mbeta(v)/(self.qt*0.1*(1 + self.malpha(v)))
+        tau = self.mbeta(v)/(self.qt*0.1*(1 + self.malpha(v)))
+        tau[tau < 0.1] = 0.1
+        return tau
     
     def minf(self, v):
         return 1/(1 + self.malpha(v))
@@ -1373,7 +1483,9 @@ class kad:
 
 
     def htau(self, v):
-        return 0.26*(v+50)
+        tau = 0.26*(v+50)
+        tau[tau < 2] = 2
+        return tau
 
     def hinf(self, v):
         return 1/(1 + self.halpha(v)) # self.h_alpha/(self.h_alpha + self.h_beta)
@@ -1451,6 +1563,20 @@ class kad:
         """
         return m*(self.E - v)
 
+    def m_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_m
+
+        """
+        return h
+
+    def h_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_h
+
+        """
+        return m
+
 class kap:
     def __init__(self, v, E = -85.0):
         self.m = self.minf(v)
@@ -1481,7 +1607,9 @@ class kap:
         return 1e-3*37.78*0.55*self.malpha(v)*(zeta + (v - 11)/5*np.exp((v + 40)/5)/(1 + np.exp((v + 40)/5))**2)
 
     def mtau(self,v):
-        return self.mbeta(v)/(self.qt*0.05*(1 + self.malpha(v)))
+        tau = self.mbeta(v)/(self.qt*0.05*(1 + self.malpha(v)))
+        tau[tau < 0.1] = 0.1
+        return tau
     
     def minf(self, v):
         return 1/(1 + self.malpha(v))
@@ -1494,7 +1622,9 @@ class kap:
 
 
     def htau(self, v):
-        return 0.26*(v+50)
+        tau = 0.26*(v+50)
+        tau[tau < 2] = 2
+        return tau
 
     def hinf(self, v):
         return 1/(1 + self.halpha(v)) # self.h_alpha/(self.h_alpha + self.h_beta)
@@ -1572,6 +1702,20 @@ class kap:
         """
         return m*(self.E - v)
 
+    def m_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_m
+
+        """
+        return h
+
+    def h_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_h
+
+        """
+        return m
+
 class ca:
     def __init__(self, v, E = 120.0):
         self.m = self.minf(v)
@@ -1593,7 +1737,7 @@ class ca:
         return 0.055*((1. - np.exp(-(v + 27.)/3.8)) - 1/3.8*(v + 27.)*np.exp(-(v + 27.)/3.8))/(1. - np.exp(-(v + 27.)/3.8))**2
 
     def mbeta(self, v):
-        return -0.94*np.exp(-(v + 75)/17)
+        return 0.94*np.exp(-(v + 75)/17)
 
     def d_mbeta(self, v):
         return -0.94/27*np.exp(-(v + 75)/17)
@@ -1707,6 +1851,20 @@ class ca:
         """
         return (m**2)*(self.E - v)
 
+    def m_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_m
+
+        """
+        return 2*(m*h)
+
+    def h_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_h
+
+        """
+        return (m**2)
+
 class it:
     def __init__(self, v, E = 120.0):
         self.m = self.minf(v)
@@ -1799,6 +1957,20 @@ class it:
         """
         return (m**2)*(self.E - v)
 
+    def m_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_m
+
+        """
+        return 2*(m*h)
+
+    def h_d(self, v, m, h):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_h
+
+        """
+        return (m**2)
+
 class SK_E2:
     def __init__(self, ca =  1e-4, E = -85.0):
         self.m = self.minf(ca)
@@ -1859,6 +2031,13 @@ class SK_E2:
         """
         return self.E - v
 
+    def m_d(self, v, m):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_m
+
+        """
+        return 1
+
 
 class kBK:
     def __init__(self, v, ca =  1e-4, E = -85.0):
@@ -1893,6 +2072,13 @@ class kBK:
 
         """
         return m
+
+    def m_d(self, v, m):
+        """
+        scaling term for partial gradiant computation s_dv = c*s_m
+
+        """
+        return 1
 
 class CaDynamics_E2:
     def __init__(self, ica = 0):

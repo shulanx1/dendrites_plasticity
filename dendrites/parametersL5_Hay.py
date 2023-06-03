@@ -55,7 +55,7 @@ def init_params(wd):
     E_hcn = -45. # HCN reversal potential (mV)
     v_th = -55.  # Traub and Miles threshold parameter (mV)
     t_max = 0.2e3  # slow K adaptation time scale (ms)
-    active_d = False  # active or passive dendrites
+    active_d = True  # active or passive dendrites
     active_n = True  # active or passive NMDA receptors
 
     P = {'tree': tree,

@@ -3,12 +3,16 @@
 
 import numpy as np
 import pickle
+import sys
+wd = 'E:\\Code\\dendrites_plasticity' # working directory
+sys.path.insert(1, wd)
 
-results = './outputs/sta/sta_act1'
+model = 'l5'
+results = wd + '\\outputs\\sta\\sta_'  + model
 processed = results + '_proc'
 
 
-t_window = 101  # analysis window (max time preceding somatic spikes)
+t_window = 150  # analysis window (max time preceding somatic spikes)
 cell, V, F_e, F_i, W_e, W_i = pickle.load(open(results, 'rb'))
 basal, oblique, apical = cell.P['basal'], cell.P['oblique'], cell.P['apical']
 locs_e = cell.sec_e

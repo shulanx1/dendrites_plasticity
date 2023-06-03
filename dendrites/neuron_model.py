@@ -1133,16 +1133,16 @@ class NModel:
                 sec.insert('ca')   # HVA-Ca
                 sec.insert('it')  # LVA-Ca
                 sec.insert('kv')
-                sec.insert('kBK')
-                sec.gpeak_kBK = 2.68e-4 *100  # changing from S/cm^2 to mho /Cm^2
+                # sec.insert('kBK')
+                # sec.gpeak_kBK = 2.68e-4 *100  # changing from S/cm^2 to mho /Cm^2
                 sec.gbar_kv = 40
                 if verbool:
                     print('Adding mechanism na to %s' %(sec.name()))
                     print('Adding mechanism ca to %s' % (sec.name()))
                     print('Adding mechanism CaT to %s' % (sec.name()))
                     print('Adding mechanism kv to %s' % (sec.name()))
-                    print('Adding mechanism kBK to %s' % (sec.name()))
-                    print('Setting gpeak_kBK to 0.0268 in %s' %(sec.name()))
+                    # print('Adding mechanism kBK to %s' % (sec.name()))
+                    # print('Setting gpeak_kBK to 0.0268 in %s' %(sec.name()))
                     print('Setting gbar_kv to 40 in %s' %(sec.name()))
                 for seg, seg_idx in zip(sec, self.get_idx(sec.name())):
                     d = self.get_intersegment_distance(soma_seg_idx, seg_idx)
@@ -1229,8 +1229,8 @@ class NModel:
                     print('Adding mechanism ca to %s' % (sec.name()))
                     print('Adding mechanism CaT to %s' % (sec.name()))
                     print('Adding mechanism kv to %s' % (sec.name()))
-                    print('Adding mechanism kBK to %s' % (sec.name()))
-                    print('Setting gpeak_kBK to 0.0268 in %s' %(sec.name()))
+                    # print('Adding mechanism kBK to %s' % (sec.name()))
+                    # print('Setting gpeak_kBK to 0.0268 in %s' %(sec.name()))
                     print('Setting gbar_kv to 40 in %s' %(sec.name()))
                 for seg, seg_idx in zip(sec, self.get_idx(sec.name())):
                     d = self.get_intersegment_distance(soma_seg_idx, seg_idx)
