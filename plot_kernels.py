@@ -16,7 +16,7 @@ model = 'l5'
 # kernel_fit = wd + '\\outputs\\kernel_fit_' + model
 kernel_fit = wd + '\\input\\kernel_fit_' + model
 t = np.arange(0, 100)
-v = np.arange(-70, 1)
+v = np.arange(-80, 1)
 # v = np.arange(-76, -65)
 
 
@@ -43,7 +43,7 @@ def display_kernel(z, min, max, ax, map):
     ax.set_ylabel('local voltage (mV)', fontsize=11)
     ax.invert_xaxis()
     ax.xaxis.set_ticks_position('bottom')
-    ax.set_yticks(np.arange(0, 100, 20))
+    ax.set_yticks(np.arange(-80, 20, 20))
     ax.set_yticklabels(np.arange(-80, 20, 20))
     ax.set_xticks(np.arange(0, 120, 20))
     ax.set_xticklabels(np.arange(0, 120, 20))
@@ -64,7 +64,7 @@ def z_norm(z):
     None.
 
     """
-    return np.sign(z)*(abs(z) - np.min(abs(z)))/(np.max(abs(z)) - np.min(abs(z)))
+    return np.sign(z)*(abs(z) - np.nanmin(abs(z)))/(np.nanmax(abs(z)) - np.nanmin(abs(z)))
 
 
 _, params = pickle.load(open(kernel_fit, 'rb'))
@@ -77,8 +77,8 @@ z_ia = kernels.eval_poly_mesh(t, v, p_ia)*1e-3
 
 
 fig, ax = pyplot.subplots(2, 2)
-im_b = display_kernel(z_eb, 0, np.max(z_eb), ax[0, 0], 'viridis')
-im_a = display_kernel(z_ea, 0, np.max(z_ea), ax[0, 1], 'viridis')
+im_b = display_kernel(z_eb, 0, np.max(z_eb), ax[0, 0], 'plasma')
+im_a = display_kernel(z_ea, 0, np.max(z_ea), ax[0, 1], 'plasma')
 # z_eb_1 = z_norm(z_eb)
 # z_ea_1 = z_norm(z_ea)
 # im_b = display_kernel(z_eb_1, 0, np.max(z_eb_1), ax[0, 0], 'viridis')
@@ -91,8 +91,8 @@ cb_b = fig.colorbar(im_b, ax=ax[0, 0],  ticks=[0, np.round(np.max(z_eb)-0.01, 2)
 cb_a = fig.colorbar(im_a, ax=ax[0, 1],  ticks=[0, np.round(np.max(z_ea)-0.01, 2)],
                     fraction=0.0375, pad=0.04, label=r'$\partial v/\partial w$'
                     +' (mVnS' + r'$^{-\mathregular{1}}$)')
-im2_b = display_kernel(z_ib, np.min(z_ib), 0, ax[1, 0], 'viridis_r')
-im2_a = display_kernel(z_ia, np.min(z_ia), 0, ax[1, 1], 'viridis_r')
+im2_b = display_kernel(z_ib, np.min(z_ib), 0, ax[1, 0], 'cividis_r')
+im2_a = display_kernel(z_ia, np.min(z_ia), 0, ax[1, 1], 'cividis_r')
 # z_ib_1 = z_norm(z_ib)
 # z_ia_1 = z_norm(z_ia)
 # im2_b = display_kernel(z_ib_1, np.min(z_ib_1), 0, ax[1, 0], 'viridis_r')

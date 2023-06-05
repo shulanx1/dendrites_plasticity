@@ -34,7 +34,11 @@ def plot_simple_raster(S, S_i, T):
 def raster_params(cell):
     """ Spatial positions and boundaries for spike raster."""
     P = cell.P
-    soma, basal, oblique, apical = P['soma'], P['basal'], P['oblique'], P['apical']
+    soma = cell.soma
+    basal = cell.basal
+    oblique = np.array([])
+    apical = cell.apical
+    # soma, basal, oblique, apical = P['soma'], P['basal'], P['oblique'], P['apical']
     w_sec = cell.sec_e[0, :]
     w_soma = [k for k in range(P['N_e']) if w_sec[k] in soma]
     w_basal = [k for k in range(P['N_e']) if w_sec[k] in basal]
@@ -46,7 +50,7 @@ def raster_params(cell):
         if len(np.where(w_sorted == k)[0])>0:
             index.append(np.where(w_sorted == k)[0][0])
     boundaries = []
-    for b in [oblique[-1], apical[-1]]:
+    for b in [basal[-1]]:
         position = np.where(cell.sec_e[0, :] == b)[0]
         if len(position) > 0:
             position = position[-1]

@@ -1347,149 +1347,10 @@ class CModel:
         dhQ = dt*(self.Q.T*1/cm).T
 
 
-        gates_a = np.zeros(gates.shape)
-        gates_a[0, n_dend, :] = channels[0].m_a(v[n_dend, :], gates[0, n_dend, :], gates[1, n_dend, :])
-        gates_a[1, n_dend, :] = channels[0].h_a(v[n_dend, :], gates[0, n_dend, :], gates[1, n_dend, :])
-        gates_a[0, axon, :] = channels[1].m_a(v[axon, :], gates[0, axon, :], gates[1, axon, :])
-        gates_a[1, axon, :] = channels[1].h_a(v[axon, :], gates[0, axon, :], gates[1, axon, :])
-        if active_d:
-            gates_a[0, dend, :] = channels[2].m_a(v[dend, :], gates[0, dend, :], gates[1, dend, :])
-            gates_a[1, dend, :] = channels[2].h_a(v[dend, :], gates[0, dend, :], gates[1, dend, :])
-        gates_a[2,n_dend, :] = channels[3].m_a(v[n_dend,:], gates[2,n_dend, :])
-        if active_d:
-            gates_a[2, dend, :] = channels[4].m_a(v[dend,:], gates[2,dend, :])
-        gates_a[3, n_dend, :] = channels[5].m_a(v[n_dend,:], gates[3, n_dend, :], gates[4, n_dend, :])
-        gates_a[4, n_dend, :] = channels[5].h_a(v[n_dend,:], gates[3, n_dend, :], gates[4, n_dend, :])
-        if active_d:
-            gates_a[3, dend, :] = channels[6].m_a(v[dend,:], gates[3, dend, :], gates[4, dend, :])
-            gates_a[4, dend, :] = channels[6].h_a(v[dend,:], gates[3, dend, :], gates[4, dend, :])
-        gates_a[5, n_dend, :] = channels[7].m_a(v[n_dend,:], gates[5, n_dend, :], gates[6, n_dend, :])
-        gates_a[6, n_dend, :] = channels[7].h_a(v[n_dend,:], gates[5, n_dend, :], gates[6, n_dend, :])
-        if active_d:
-            gates_a[5, dend, :] = channels[8].m_a(v[dend,:], gates[5, dend, :], gates[6, dend, :])
-            gates_a[6, dend, :] = channels[8].h_a(v[dend,:], gates[5, dend, :], gates[6, dend, :])
-        gates_a[7, :, :] = channels[9].m_a(v, gates[7, :, :])
-        gates_a[8, :, :] = channels[10].m_a(v, gates[8, :, :])
-        gates_a[9, axon, :] = channels[11].m_a(v[axon,:], gates[9, axon, :], gates[10, axon, :])
-        gates_a[10, axon, :] = channels[11].h_a(v[axon,:], gates[9, axon, :], gates[10, axon, :])
-        gates_a[11, axon, :] = channels[12].m_a(v[axon,:], gates[11, axon, :], gates[12, axon, :])
-        gates_a[12, axon, :] = channels[12].h_a(v[axon,:], gates[11, axon, :], gates[12, axon, :])
-        if active_d:
-            gates_a[11, dend, :] = channels[13].m_a(v[dend,:], gates[11, dend, :], gates[12, dend, :])
-            gates_a[12, dend, :] = channels[13].h_a(v[dend,:], gates[11, dend, :], gates[12, dend, :])
-        gates_a[13, axon, :] = channels[14].m_a(v[axon,:], gates[13, axon, :], gates[14, axon, :])
-        gates_a[14, axon, :] = channels[14].h_a(v[axon,:], gates[13, axon, :], gates[14, axon, :])
-        if active_d:
-            gates_a[13, dend, :] = channels[15].m_a(v[dend,:], gates[13, dend, :], gates[14, dend, :])
-            gates_a[14, dend, :] = channels[15].h_a(v[dend,:], gates[13, dend, :], gates[14, dend, :])
-
-        gates_b = np.zeros(gates.shape)
-        gates_b[0, n_dend, :] = channels[0].m_b(v[n_dend, :], gates[0, n_dend, :], gates[1, n_dend, :])
-        gates_b[1, n_dend, :] = channels[0].h_b(v[n_dend, :], gates[0, n_dend, :], gates[1, n_dend, :])
-        gates_b[0, axon, :] = channels[1].m_b(v[axon, :], gates[0, axon, :], gates[1, axon, :])
-        gates_b[1, axon, :] = channels[1].h_b(v[axon, :], gates[0, axon, :], gates[1, axon, :])
-        if active_d:
-            gates_b[0, dend, :] = channels[2].m_b(v[dend, :], gates[0, dend, :], gates[1, dend, :])
-            gates_b[1, dend, :] = channels[2].h_b(v[dend, :], gates[0, dend, :], gates[1, dend, :])
-        gates_b[2,n_dend, :] = channels[3].m_b(v[n_dend,:], gates[2,n_dend, :])
-        if active_d:
-            gates_b[2, dend, :] = channels[4].m_b(v[dend,:], gates[2,dend, :])
-        gates_b[3, n_dend, :] = channels[5].m_b(v[n_dend,:], gates[3, n_dend, :], gates[4, n_dend, :])
-        gates_b[4, n_dend, :] = channels[5].h_b(v[n_dend,:], gates[3, n_dend, :], gates[4, n_dend, :])
-        if active_d:
-            gates_b[3, dend, :] = channels[6].m_b(v[dend,:], gates[3, dend, :], gates[4, dend, :])
-            gates_b[4, dend, :] = channels[6].h_b(v[dend,:], gates[3, dend, :], gates[4, dend, :])
-        gates_b[5, n_dend, :] = channels[7].m_b(v[n_dend,:], gates[5, n_dend, :], gates[6, n_dend, :])
-        gates_b[6, n_dend, :] = channels[7].h_b(v[n_dend,:], gates[5, n_dend, :], gates[6, n_dend, :])
-        if active_d:
-            gates_b[5, dend, :] = channels[8].m_b(v[dend,:], gates[5, dend, :], gates[6, dend, :])
-            gates_b[6, dend, :] = channels[8].h_b(v[dend,:], gates[5, dend, :], gates[6, dend, :])
-        gates_b[7, :, :] = channels[9].m_b(v, gates[7, :, :])
-        gates_b[8, :, :] = channels[10].m_b(v, gates[8, :, :])
-        gates_b[9, axon, :] = channels[11].m_b(v[axon,:], gates[9, axon, :], gates[10, axon, :])
-        gates_b[10, axon, :] = channels[11].h_b(v[axon,:], gates[9, axon, :], gates[10, axon, :])
-        gates_b[11, axon, :] = channels[12].m_b(v[axon,:], gates[11, axon, :], gates[12, axon, :])
-        gates_b[12, axon, :] = channels[12].h_b(v[axon,:], gates[11, axon, :], gates[12, axon, :])
-        if active_d:
-            gates_b[11, dend, :] = channels[13].m_b(v[dend,:], gates[11, dend, :], gates[12, dend, :])
-            gates_b[12, dend, :] = channels[13].h_b(v[dend,:], gates[11, dend, :], gates[12, dend, :])
-        gates_b[13, axon, :] = channels[14].m_b(v[axon,:], gates[13, axon, :], gates[14, axon, :])
-        gates_b[14, axon, :] = channels[14].h_b(v[axon,:], gates[13, axon, :], gates[14, axon, :])
-        if active_d:
-            gates_b[13, dend, :] = channels[15].m_b(v[dend,:], gates[13, dend, :], gates[14, dend, :])
-            gates_b[14, dend, :] = channels[15].h_b(v[dend,:], gates[13, dend, :], gates[14, dend, :])
-
-        gates_c = np.zeros(gates.shape)
-        gates_c[0, n_dend, :] = channels[0].m_c(v[n_dend, :], gates[0, n_dend, :], gates[1, n_dend, :])
-        gates_c[1, n_dend, :] = channels[0].h_c(v[n_dend, :], gates[0, n_dend, :], gates[1, n_dend, :])
-        gates_c[0, axon, :] = channels[1].m_c(v[axon, :], gates[0, axon, :], gates[1, axon, :])
-        gates_c[1, axon, :] = channels[1].h_c(v[axon, :], gates[0, axon, :], gates[1, axon, :])
-        if active_d:
-            gates_c[0, dend, :] = channels[2].m_c(v[dend, :], gates[0, dend, :], gates[1, dend, :])
-            gates_c[1, dend, :] = channels[2].h_c(v[dend, :], gates[0, dend, :], gates[1, dend, :])
-        gates_c[2,n_dend, :] = channels[3].m_c(v[n_dend,:], gates[2,n_dend, :])
-        if active_d:
-            gates_c[2, dend, :] = channels[4].m_c(v[dend,:], gates[2,dend, :])
-        gates_c[3, n_dend, :] = channels[5].m_c(v[n_dend,:], gates[3, n_dend, :], gates[4, n_dend, :])
-        gates_c[4, n_dend, :] = channels[5].h_c(v[n_dend,:], gates[3, n_dend, :], gates[4, n_dend, :])
-        if active_d:
-            gates_c[3, dend, :] = channels[6].m_c(v[dend,:], gates[3, dend, :], gates[4, dend, :])
-            gates_c[4, dend, :] = channels[6].h_c(v[dend,:], gates[3, dend, :], gates[4, dend, :])
-        gates_c[5, n_dend, :] = channels[7].m_c(v[n_dend,:], gates[5, n_dend, :], gates[6, n_dend, :])
-        gates_c[6, n_dend, :] = channels[7].h_c(v[n_dend,:], gates[5, n_dend, :], gates[6, n_dend, :])
-        if active_d:
-            gates_c[5, dend, :] = channels[8].m_c(v[dend,:], gates[5, dend, :], gates[6, dend, :])
-            gates_c[6, dend, :] = channels[8].h_c(v[dend,:], gates[5, dend, :], gates[6, dend, :])
-        gates_c[7, :, :] = channels[9].m_c(v, gates[7, :, :])
-        gates_c[8, :, :] = channels[10].m_c(v, gates[8, :, :])
-        gates_c[9, axon, :] = channels[11].m_c(v[axon,:], gates[9, axon, :], gates[10, axon, :])
-        gates_c[10, axon, :] = channels[11].h_c(v[axon,:], gates[9, axon, :], gates[10, axon, :])
-        gates_c[11, axon, :] = channels[12].m_c(v[axon,:], gates[11, axon, :], gates[12, axon, :])
-        gates_c[12, axon, :] = channels[12].h_c(v[axon,:], gates[11, axon, :], gates[12, axon, :])
-        if active_d:
-            gates_c[11, dend, :] = channels[13].m_c(v[dend,:], gates[11, dend, :], gates[12, dend, :])
-            gates_c[12, dend, :] = channels[13].h_c(v[dend,:], gates[11, dend, :], gates[12, dend, :])
-        gates_c[13, axon, :] = channels[14].m_c(v[axon,:], gates[13, axon, :], gates[14, axon, :])
-        gates_c[14, axon, :] = channels[14].h_c(v[axon,:], gates[13, axon, :], gates[14, axon, :])
-        if active_d:
-            gates_c[13, dend, :] = channels[15].m_c(v[dend,:], gates[13, dend, :], gates[14, dend, :])
-            gates_c[14, dend, :] = channels[15].h_c(v[dend,:], gates[13, dend, :], gates[14, dend, :])
-
-        gates_d = np.zeros(gates.shape)
-        gates_d[0, n_dend, :] = channels[0].m_d(v[n_dend, :], gates[0, n_dend, :], gates[1, n_dend, :])
-        gates_d[1, n_dend, :] = channels[0].h_d(v[n_dend, :], gates[0, n_dend, :], gates[1, n_dend, :])
-        gates_d[0, axon, :] = channels[1].m_d(v[axon, :], gates[0, axon, :], gates[1, axon, :])
-        gates_d[1, axon, :] = channels[1].h_d(v[axon, :], gates[0, axon, :], gates[1, axon, :])
-        if active_d:
-            gates_d[0, dend, :] = channels[2].m_d(v[dend, :], gates[0, dend, :], gates[1, dend, :])
-            gates_d[1, dend, :] = channels[2].h_d(v[dend, :], gates[0, dend, :], gates[1, dend, :])
-        gates_d[2,n_dend, :] = channels[3].m_d(v[n_dend,:], gates[2,n_dend, :])
-        if active_d:
-            gates_d[2, dend, :] = channels[4].m_d(v[dend,:], gates[2,dend, :])
-        gates_d[3, n_dend, :] = channels[5].m_d(v[n_dend,:], gates[3, n_dend, :], gates[4, n_dend, :])
-        gates_d[4, n_dend, :] = channels[5].h_d(v[n_dend,:], gates[3, n_dend, :], gates[4, n_dend, :])
-        if active_d:
-            gates_d[3, dend, :] = channels[6].m_d(v[dend,:], gates[3, dend, :], gates[4, dend, :])
-            gates_d[4, dend, :] = channels[6].h_d(v[dend,:], gates[3, dend, :], gates[4, dend, :])
-        gates_d[5, n_dend, :] = channels[7].m_d(v[n_dend,:], gates[5, n_dend, :], gates[6, n_dend, :])
-        gates_d[6, n_dend, :] = channels[7].h_d(v[n_dend,:], gates[5, n_dend, :], gates[6, n_dend, :])
-        if active_d:
-            gates_d[5, dend, :] = channels[8].m_d(v[dend,:], gates[5, dend, :], gates[6, dend, :])
-            gates_d[6, dend, :] = channels[8].h_d(v[dend,:], gates[5, dend, :], gates[6, dend, :])
-        gates_d[7, :, :] = channels[9].m_d(v, gates[7, :, :])
-        gates_d[8, :, :] = channels[10].m_d(v, gates[8, :, :])
-        gates_d[9, axon, :] = channels[11].m_d(v[axon,:], gates[9, axon, :], gates[10, axon, :])
-        gates_d[10, axon, :] = channels[11].h_d(v[axon,:], gates[9, axon, :], gates[10, axon, :])
-        gates_d[11, axon, :] = channels[12].m_d(v[axon,:], gates[11, axon, :], gates[12, axon, :])
-        gates_d[12, axon, :] = channels[12].h_d(v[axon,:], gates[11, axon, :], gates[12, axon, :])
-        if active_d:
-            gates_d[11, dend, :] = channels[13].m_d(v[dend,:], gates[11, dend, :], gates[12, dend, :])
-            gates_d[12, dend, :] = channels[13].h_d(v[dend,:], gates[11, dend, :], gates[12, dend, :])
-        gates_d[13, axon, :] = channels[14].m_d(v[axon,:], gates[13, axon, :], gates[14, axon, :])
-        gates_d[14, axon, :] = channels[14].h_d(v[axon,:], gates[13, axon, :], gates[14, axon, :])
-        if active_d:
-            gates_d[13, dend, :] = channels[15].m_d(v[dend,:], gates[13, dend, :], gates[14, dend, :])
-            gates_d[14, dend, :] = channels[15].h_d(v[dend,:], gates[13, dend, :], gates[14, dend, :])
+        gates_a = np.zeros(gates.shape[:2])
+        gates_b = np.zeros(gates.shape[:2])
+        gates_c = np.zeros(gates.shape[:2])
+        gates_d = np.zeros(gates.shape[:2])
 
 
         g_a_ion = np.zeros((g_ion.shape[0], M, gates.shape[2]))
@@ -1547,39 +1408,170 @@ class CModel:
         gw_i = (Hz_i.T@(E_i - v))*ZG
 
         gates_Y = np.zeros((gates.shape[0], N_e + N_i, M))
-        c = np.zeros((g_ion.shape[0], M,N_e + N_i, v.shape[1]))
+        c = np.zeros((g_ion.shape[0], 3,N_e + N_i, v.shape[1]))
         B = np.zeros((M, N_e + N_i))
         f_soma = B[0, :]
         f_e = np.zeros((M,N_e,v.shape[1]))
         f_i = np.zeros((M,N_i,v.shape[1]))
-        gates_b1 = gates_b
-        gates_b1[np.where(gates_b1==0)] = np.inf
         for k in range(1, v.shape[1]):
-            # Y_m += (a_m[:, k-1]/b_m[:, k-1]*B[a_inds, :].T - Y_m)*(
-            #         1 - np.exp(-dt*b_m[:, k-1]))
-            # Y_h += (a_h[:, k-1]/b_h[:, k-1]*B[a_inds, :].T - Y_h)*(
-            #         1 - np.exp(-dt*b_h[:, k-1]))
-            # Y_n += (a_n[:, k-1]/b_n[:, k-1]*B[a_inds, :].T - Y_n)*(
-            #         1 - np.exp(-dt*b_n[:, k-1]))
-            # Y_p += (a_p[:, k-1]/b_p[:, k-1]*B[a_inds, :].T - Y_p)*(
-            #         1 - np.exp(-dt*b_p[:, k-1]))
-            # Y_hcn += (a_hcn[:, k-1]/b_hcn[:, k-1]*B[a_inds, :].T - Y_hcn)*(
-            #         1 - np.exp(-dt*b_hcn[:, k-1]))
+            k = k - 1
+            gates_a[0, n_dend] = channels[0].m_a(v[n_dend, k], gates[0, n_dend, k], gates[1, n_dend, k])
+            gates_a[1, n_dend] = channels[0].h_a(v[n_dend, k], gates[0, n_dend, k], gates[1, n_dend, k])
+            gates_a[0, axon] = channels[1].m_a(v[axon, k], gates[0, axon, k], gates[1, axon, k])
+            gates_a[1, axon] = channels[1].h_a(v[axon, k], gates[0, axon, k], gates[1, axon, k])
+            if active_d:
+                gates_a[0, dend] = channels[2].m_a(v[dend, k], gates[0, dend, k], gates[1, dend, k])
+                gates_a[1, dend] = channels[2].h_a(v[dend, k], gates[0, dend, k], gates[1, dend, k])
+            gates_a[2,n_dend] = channels[3].m_a(v[n_dend,k], gates[2,n_dend, k])
+            if active_d:
+                gates_a[2, dend] = channels[4].m_a(v[dend,k], gates[2,dend, k])
+            gates_a[3, n_dend] = channels[5].m_a(v[n_dend,k], gates[3, n_dend, k], gates[4, n_dend, k])
+            gates_a[4, n_dend] = channels[5].h_a(v[n_dend,k], gates[3, n_dend, k], gates[4, n_dend, k])
+            if active_d:
+                gates_a[3, dend] = channels[6].m_a(v[dend,k], gates[3, dend, k], gates[4, dend, k])
+                gates_a[4, dend] = channels[6].h_a(v[dend,k], gates[3, dend, k], gates[4, dend, k])
+            gates_a[5, n_dend] = channels[7].m_a(v[n_dend,k], gates[5, n_dend, k], gates[6, n_dend, k])
+            gates_a[6, n_dend] = channels[7].h_a(v[n_dend,k], gates[5, n_dend, k], gates[6, n_dend, k])
+            if active_d:
+                gates_a[5, dend] = channels[8].m_a(v[dend,k], gates[5, dend, k], gates[6, dend, k])
+                gates_a[6, dend] = channels[8].h_a(v[dend,k], gates[5, dend, k], gates[6, dend, k])
+            gates_a[7, :] = channels[9].m_a(v[:,k], gates[7, :, k])
+            gates_a[8, :] = channels[10].m_a(v[:,k], gates[8, :, k])
+            gates_a[9, axon] = channels[11].m_a(v[axon,k], gates[9, axon, k], gates[10, axon, k])
+            gates_a[10, axon] = channels[11].h_a(v[axon,k], gates[9, axon, k], gates[10, axon, k])
+            gates_a[11, axon] = channels[12].m_a(v[axon,k], gates[11, axon, k], gates[12, axon, k])
+            gates_a[12, axon] = channels[12].h_a(v[axon,k], gates[11, axon, k], gates[12, axon, k])
+            if active_d:
+                gates_a[11, dend] = channels[13].m_a(v[dend,k], gates[11, dend, k], gates[12, dend, k])
+                gates_a[12, dend] = channels[13].h_a(v[dend,k], gates[11, dend, k], gates[12, dend, k])
+            gates_a[13, axon] = channels[14].m_a(v[axon,k], gates[13, axon, k], gates[14, axon, k])
+            gates_a[14, axon] = channels[14].h_a(v[axon,k], gates[13, axon, k], gates[14, axon, k])
+            if active_d:
+                gates_a[13, dend] = channels[15].m_a(v[dend,k], gates[13, dend, k], gates[14, dend, k])
+                gates_a[14, dend] = channels[15].h_a(v[dend,k], gates[13, dend, k], gates[14, dend, k])
+
+            gates_b[0, n_dend] = channels[0].m_b(v[n_dend, k], gates[0, n_dend, k], gates[1, n_dend, k])
+            gates_b[1, n_dend] = channels[0].h_b(v[n_dend, k], gates[0, n_dend, k], gates[1, n_dend, k])
+            gates_b[0, axon] = channels[1].m_b(v[axon, k], gates[0, axon, k], gates[1, axon, k])
+            gates_b[1, axon] = channels[1].h_b(v[axon, k], gates[0, axon, k], gates[1, axon, k])
+            if active_d:
+                gates_b[0, dend] = channels[2].m_b(v[dend, k], gates[0, dend, k], gates[1, dend, k])
+                gates_b[1, dend] = channels[2].h_b(v[dend, k], gates[0, dend, k], gates[1, dend, k])
+            gates_b[2,n_dend] = channels[3].m_b(v[n_dend,k], gates[2,n_dend, k])
+            if active_d:
+                gates_b[2, dend] = channels[4].m_b(v[dend,k], gates[2,dend, k])
+            gates_b[3, n_dend] = channels[5].m_b(v[n_dend,k], gates[3, n_dend, k], gates[4, n_dend,k])
+            gates_b[4, n_dend] = channels[5].h_b(v[n_dend,k], gates[3, n_dend, k], gates[4, n_dend, k])
+            if active_d:
+                gates_b[3, dend] = channels[6].m_b(v[dend,k], gates[3, dend, k], gates[4, dend, k])
+                gates_b[4, dend] = channels[6].h_b(v[dend,k], gates[3, dend, k], gates[4, dend, k])
+            gates_b[5, n_dend] = channels[7].m_b(v[n_dend,k], gates[5, n_dend, k], gates[6, n_dend, k])
+            gates_b[6, n_dend] = channels[7].h_b(v[n_dend,k], gates[5, n_dend, k], gates[6, n_dend, k])
+            if active_d:
+                gates_b[5, dend] = channels[8].m_b(v[dend,k], gates[5, dend, k], gates[6, dend, k])
+                gates_b[6, dend] = channels[8].h_b(v[dend,k], gates[5, dend, k], gates[6, dend, k])
+            gates_b[7, :] = channels[9].m_b(v[:,k], gates[7, :, k])
+            gates_b[8, :] = channels[10].m_b(v[:,k], gates[8, :, k])
+            gates_b[9, axon] = channels[11].m_b(v[axon,k], gates[9, axon, k], gates[10, axon, k])
+            gates_b[10, axon] = channels[11].h_b(v[axon,k], gates[9, axon, k], gates[10, axon, k])
+            gates_b[11, axon] = channels[12].m_b(v[axon,k], gates[11, axon, k], gates[12, axon, k])
+            gates_b[12, axon] = channels[12].h_b(v[axon,k], gates[11, axon, k], gates[12, axon, k])
+            if active_d:
+                gates_b[11, dend] = channels[13].m_b(v[dend,k], gates[11, dend, k], gates[12, dend, k])
+                gates_b[12, dend] = channels[13].h_b(v[dend,k], gates[11, dend, k], gates[12, dend, k])
+            gates_b[13, axon] = channels[14].m_b(v[axon,k], gates[13, axon, k], gates[14, axon, k])
+            gates_b[14, axon] = channels[14].h_b(v[axon,k], gates[13, axon, k], gates[14, axon, k])
+            if active_d:
+                gates_b[13, dend] = channels[15].m_b(v[dend,k], gates[13, dend, k], gates[14, dend, k])
+                gates_b[14, dend] = channels[15].h_b(v[dend,k], gates[13, dend, k], gates[14, dend, k])
+
+            gates_b[gates_b==0] = np.inf
+
+            k = k + 1
+            gates_c[0, n_dend] = channels[0].m_c(v[n_dend, k], gates[0, n_dend, k], gates[1, n_dend, k])
+            gates_c[1, n_dend] = channels[0].h_c(v[n_dend, k], gates[0, n_dend,k], gates[1, n_dend, k])
+            gates_c[0, axon] = channels[1].m_c(v[axon, k], gates[0, axon, k], gates[1, axon, k])
+            gates_c[1, axon] = channels[1].h_c(v[axon, k], gates[0, axon, k], gates[1, axon, k])
+            if active_d:
+                gates_c[0, dend] = channels[2].m_c(v[dend, k], gates[0, dend, k], gates[1, dend, k])
+                gates_c[1, dend] = channels[2].h_c(v[dend, k], gates[0, dend, k], gates[1, dend, k])
+            gates_c[2,n_dend] = channels[3].m_c(v[n_dend,k], gates[2,n_dend, k])
+            if active_d:
+                gates_c[2, dend] = channels[4].m_c(v[dend,k], gates[2,dend, k])
+            gates_c[3, n_dend] = channels[5].m_c(v[n_dend,k], gates[3, n_dend, k], gates[4, n_dend, k])
+            gates_c[4, n_dend] = channels[5].h_c(v[n_dend,k], gates[3, n_dend, k], gates[4, n_dend, k])
+            if active_d:
+                gates_c[3, dend] = channels[6].m_c(v[dend,k], gates[3, dend, k], gates[4, dend, k])
+                gates_c[4, dend] = channels[6].h_c(v[dend,k], gates[3, dend, k], gates[4, dend, k])
+            gates_c[5, n_dend] = channels[7].m_c(v[n_dend,k], gates[5, n_dend, k], gates[6, n_dend, k])
+            gates_c[6, n_dend] = channels[7].h_c(v[n_dend,k], gates[5, n_dend, k], gates[6, n_dend, k])
+            if active_d:
+                gates_c[5, dend] = channels[8].m_c(v[dend,k], gates[5, dend, k], gates[6, dend, k])
+                gates_c[6, dend] = channels[8].h_c(v[dend,k], gates[5, dend, k], gates[6, dend, k])
+            gates_c[7, :] = channels[9].m_c(v[:,k], gates[7, :, k])
+            gates_c[8, :] = channels[10].m_c(v[:,k], gates[8, :, k])
+            gates_c[9, axon] = channels[11].m_c(v[axon,k], gates[9, axon, k], gates[10, axon, k])
+            gates_c[10, axon] = channels[11].h_c(v[axon,k], gates[9, axon, k], gates[10, axon, k])
+            gates_c[11, axon] = channels[12].m_c(v[axon,k], gates[11, axon, k], gates[12, axon, k])
+            gates_c[12, axon] = channels[12].h_c(v[axon,k], gates[11, axon, k], gates[12, axon, k])
+            if active_d:
+                gates_c[11, dend] = channels[13].m_c(v[dend,k], gates[11, dend, k], gates[12, dend, k])
+                gates_c[12, dend] = channels[13].h_c(v[dend,k], gates[11, dend, k], gates[12, dend, k])
+            gates_c[13, axon] = channels[14].m_c(v[axon,k], gates[13, axon, k], gates[14, axon, k])
+            gates_c[14, axon] = channels[14].h_c(v[axon,k], gates[13, axon, k], gates[14, axon, k])
+            if active_d:
+                gates_c[13, dend] = channels[15].m_c(v[dend,k], gates[13, dend, k], gates[14, dend, k])
+                gates_c[14, dend] = channels[15].h_c(v[dend,k], gates[13, dend, k], gates[14, dend, k])
+
+            gates_d[0, n_dend] = channels[0].m_d(v[n_dend, k], gates[0, n_dend, k], gates[1, n_dend, k])
+            gates_d[1, n_dend] = channels[0].h_d(v[n_dend, k], gates[0, n_dend, k], gates[1, n_dend, k])
+            gates_d[0, axon] = channels[1].m_d(v[axon, k], gates[0, axon, k], gates[1, axon, k])
+            gates_d[1, axon] = channels[1].h_d(v[axon, k], gates[0, axon, k], gates[1, axon, k])
+            if active_d:
+                gates_d[0, dend] = channels[2].m_d(v[dend, k], gates[0, dend, k], gates[1, dend, k])
+                gates_d[1, dend] = channels[2].h_d(v[dend, k], gates[0, dend, k], gates[1, dend, k])
+            gates_d[2,n_dend] = channels[3].m_d(v[n_dend,k], gates[2,n_dend, k])
+            if active_d:
+                gates_d[2, dend] = channels[4].m_d(v[dend,k], gates[2,dend, k])
+            gates_d[3, n_dend] = channels[5].m_d(v[n_dend,k], gates[3, n_dend, k], gates[4, n_dend, k])
+            gates_d[4, n_dend] = channels[5].h_d(v[n_dend,k], gates[3, n_dend, k], gates[4, n_dend, k])
+            if active_d:
+                gates_d[3, dend] = channels[6].m_d(v[dend,k], gates[3, dend, k], gates[4, dend, k])
+                gates_d[4, dend] = channels[6].h_d(v[dend,k], gates[3, dend, k], gates[4, dend, k])
+            gates_d[5, n_dend] = channels[7].m_d(v[n_dend,k], gates[5, n_dend, k], gates[6, n_dend, k])
+            gates_d[6, n_dend] = channels[7].h_d(v[n_dend,k], gates[5, n_dend, k], gates[6, n_dend, k])
+            if active_d:
+                gates_d[5, dend] = channels[8].m_d(v[dend,k], gates[5, dend, k], gates[6, dend, k])
+                gates_d[6, dend] = channels[8].h_d(v[dend,k], gates[5, dend, k], gates[6, dend, k])
+            gates_d[7, :] = channels[9].m_d(v[:,k], gates[7, :, k])
+            gates_d[8, :] = channels[10].m_d(v[:,k], gates[8, :, k])
+            gates_d[9, axon] = channels[11].m_d(v[axon,k], gates[9, axon, k], gates[10, axon, k])
+            gates_d[10, axon] = channels[11].h_d(v[axon,k], gates[9, axon, k], gates[10, axon, k])
+            gates_d[11, axon] = channels[12].m_d(v[axon,k], gates[11, axon, k], gates[12, axon, k])
+            gates_d[12, axon] = channels[12].h_d(v[axon,k], gates[11, axon, k], gates[12, axon, k])
+            if active_d:
+                gates_d[11, dend] = channels[13].m_d(v[dend,k], gates[11, dend, k], gates[12, dend, k])
+                gates_d[12, dend] = channels[13].h_d(v[dend,k], gates[11, dend, k], gates[12, dend, k])
+            gates_d[13, axon] = channels[14].m_d(v[axon,k], gates[13, axon, k], gates[14, axon, k])
+            gates_d[14, axon] = channels[14].h_d(v[axon,k], gates[13, axon, k], gates[14, axon, k])
+            if active_d:
+                gates_d[13, dend] = channels[15].m_d(v[dend,k], gates[13, dend, k], gates[14, dend, k])
+                gates_d[14, dend] = channels[15].h_d(v[dend,k], gates[13, dend, k], gates[14, dend, k])
             for kk in range(gates.shape[0]):
-                gates_Y[kk] += (gates_a[kk, :, k-1]/gates_b[kk, :, k-1]*B.T - gates_Y[kk])*(1 - np.exp(-dt*gates_b[kk, :, k-1]))
+                gates_Y[kk] += (gates_a[kk, :]/gates_b[kk, :]*B.T - gates_Y[kk])*(1 - np.exp(-dt*gates_b[kk, :]))
             A = np.diag(1 + dt/cm*g_s[:, k]) - dhQ
             B[he_inds] += dt/cm[self.seg_e[z_ind_e]]*gw_e[:, k]
             B[hi_inds] += dt/cm[self.seg_i[z_ind_i]]*gw_i[:, k]
             Y_temp = np.zeros(B.shape)
             for kk in range(gates.shape[0]):
-                Y_temp += (gates_c[kk,:,k]*gates_Y[kk,:,:]).T
+                Y_temp += (gates_c[kk,:]*gates_Y[kk,:,:]).T
             B[a_inds, :] += (dt/cm[a_inds]*Y_temp.T).T
             solve_grad(A, B, self.g_ops, self.f_ops)
             f_e[:,:, k] = B[:,:N_e]
             f_i[:,:, k] = B[:,N_e:]
             c1_temp = np.zeros((gates.shape[0], M, N_e + N_i))
             for kk in range(gates.shape[0]):
-                c1_temp[kk,:,:] = (gates_d[kk,:,k]*gates_Y[kk,:,:]).T
+                c1_temp[kk,:,:] = (gates_d[kk,:]*gates_Y[kk,:,:]).T
             c_temp = np.zeros((g_ion.shape[0], M, N_e + N_i))
             c_temp[0,:,:] = c1_temp[0, :,:] + c1_temp[1, :,:]      # na
             c_temp[1,:,:] = c1_temp[2, :,:]       #kv
@@ -1590,12 +1582,12 @@ class CModel:
             c_temp[6,:,:] = c1_temp[9, :,:] + c1_temp[10, :,:]  #nap
             c_temp[7,:,:] = c1_temp[11, :,:]+ c1_temp[12, :,:]    #kad
             c_temp[8,:,:] = c1_temp[13, :,:] +  c1_temp[14, :,:]     #kap
-            c[:,:,:,k] = c_temp
+            c[:,:,:,k] = c_temp[:,[0,1,800], :]
 
             if self.verbool:
                 print('%d th time point solved' % k)
         c_e = c[:, :,:N_e, :]
-        c_i = c[:, :,:N_i, :]
+        c_i = c[:, :,N_e:, :]
         return f_e, f_i, c_e, c_i
 
 @nb.jit(nopython=True, cache=True)

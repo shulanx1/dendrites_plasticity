@@ -22,25 +22,24 @@ from dendrites import training
 
 from neuron import h
 
-seed = int(time.time())
+
 model = 'l5_act_b'
-results_file = wd + '\\outputs\\sta\\sta_'+model+'_data\\sta_'+model+'_'+str(seed)
 path = wd + '\\outputs\\sta\\sta_'+model+'_data'
 if not os.path.exists(path):
     os.makedirs(path)
 
 
 ### Simulation parameters ###
-T = 10000            # simulation time (ms)
+T = 5000            # simulation time (ms)
 dt = 0.1            # time step (ms)
 v_init = -75        # initial voltage (mV)
-reps = 3           # number of reps
+reps = 5           # number of reps
 w_jitter = 0.5      # perturbation to initial weights
 t_window = 150	    # analysis window (ms)
 offset = 2		    # spike time offset (ms)
 mu = 0              # mean parameter for lognormal rate dist
-sigma = 1.5           # sd parameter for lognormal rate dist
-np.random.seed(int(seed))
+sigma = 1.6           # sd parameter for lognormal rate dist
+
 
 ion_specific = True
 
@@ -267,11 +266,21 @@ def get_grad_l5_channels(cell, t0, t1, dt, S_e, S_i, soln, stim):
     v_pre = soln[0][:, int(t1 / dt)]
     f_e = f_e[[0, 1, 800], :, -1]
     f_i = f_i[[0, 1, 800], :, -1]
-    c_e = c_e[:, [0, 1, 800], :, -1]
-    c_i = c_i[:, [0, 1, 800], :, -1]
+    c_e = c_e[:, :, :, -1]
+    c_i = c_i[:, :, :, -1]
     z_e = Z_e - t1
     z_i = Z_i - t1
     return [v_pre], [f_e, c_e, z_ind_e, z_e], [f_i, c_i, z_ind_i, z_i]
+
+def create_higherbasal(rates, cell, amp = 2.5):
+    list_mod = []
+    for i, s in enumerate(cell.sec_e[0]):
+        if s in cell.basal:
+            list_mod.append(i)
+    for i in list_mod:
+        rates[0][i] = rates[0][i] * amp
+    return rates
+
 
 # P = params.init_params()
 from dendrites import parametersL5_Hay
@@ -281,8 +290,6 @@ h('forall pop_section()')
 h('forall delete_section()')
 
 cell = comp_model.CModel(P, verbool = False)
-# t, soln, stim = cell.simulate(0, T, dt, v_init, S_e, S_i)
-# np.random.seed(int(seed))
 print("initialized")
 F_e = []
 F_i = []
@@ -290,10 +297,19 @@ V = []
 W_e = []
 W_i = []
 
-#%%
+
 for rep in range(reps):
+    F_e = []
+    F_i = []
+    V = []
+    W_e = []
+    W_i = []
+    seed = int(time.time())
+    np.random.seed(int(seed))
+    results_file = wd + '\\outputs\\sta\\sta_'+model+'_data\\sta_'+model+'_'+str(seed)
     print('starting rep %d' % (rep+1))
     rates_e, rates_i = sequences.lognormal_rates(1, P['N_e'], P['N_i'], mu, sigma)
+    rates_e = create_higherbasal(rates_e, cell, amp = 0.5)
     w_e, w_i = init_weights(P)
     cell.set_weights(w_e, w_i)
     S_e, S_i = init_rand_sequence(rates_e[0], rates_i[0], T)
@@ -322,10 +338,10 @@ for rep in range(reps):
     
         if seed == '0':
             pickle.dump([cell, V, F_e, F_i, W_e, W_i], open(results_file + '_channels', 'wb'))
-            pickle.dump(soln[0], open(results_file + '_channels_v', 'wb'))
+            pickle.dump([soln[0], S_e, S_i], open(results_file + '_channels_v', 'wb'))
         else:
             pickle.dump([cell, V, F_e, F_i, W_e, W_i], open(results_file + '_channels', 'wb'))
-            pickle.dump(soln[0], open(results_file + '_channels_v', 'wb'))
+            pickle.dump([soln[0], S_e, S_i], open(results_file + '_channels_v', 'wb'))
 
         del V
         del F_e
@@ -362,3 +378,4 @@ for rep in range(reps):
         del soln
         import gc
         gc.collect()
+

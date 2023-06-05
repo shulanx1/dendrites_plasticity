@@ -44,7 +44,7 @@ input = 'opt'
 param_sets = {'rate':[40., 0, 0.], 'temp':[2.5, 1, 1.], 'opt':[20., 1, 1.]}
 r_max, num_t, s = param_sets[input]
 mu = 0
-sigma = 1.5
+sigma = 1.6
 w_jitter = 0.5      # perturbation to initial weights
 
 
@@ -52,7 +52,7 @@ kernel_fit = wd + "\\input\\kernel_fit_l5"  # fitted plasticity kernel
 # P = parameters1.init_params(wd)            # stores model parameters in dict P
 
 
-c_model = False # True for custom compartmental model with explicit gradient
+c_model = True # True for custom compartmental model with explicit gradient
                  # calculations, False for Neuron model using fitted approximation
 num_spikes = 1   # max number of somatic spikes for which to compute gradients
 np.random.seed(seed)
@@ -295,20 +295,26 @@ def init_rand_sequence(rates_e, rates_i, T):
     S_i = sequences.build_rate_seq(rates_i, 0, T)
     return S_e, S_i
 
+def create_higherbasal(rates, cell, amp = 2.5):
+    list_mod = []
+    for i, s in enumerate(cell.sec_e[0]):
+        if s in cell.basal:
+            list_mod.append(i)
+    for i in list_mod:
+        rates[0][i] = rates[0][i] * amp
+    return rates
 #%%
 h('forall pop_section()')
 h('forall delete_section()')
 rates_e, rates_i = sequences.lognormal_rates(1, P['N_e'], P['N_i'], mu, sigma)
+rates_e = create_higherbasal(rates_e, cell, amp = 0.5)
 w_e, w_i = init_weights(P)
 
 S_e, S_i = init_rand_sequence(rates_e[0], rates_i[0], T)
-c_model = True
-T = 500
 if c_model:
     cell_comp = comp_model.CModel(P, verbool = True)
     t, soln, stim = cell_comp.simulate_L5(0, T, dt, v_init, S_e, S_i)
     v = soln[0]
-    gates = soln[1]
     plt.plot(t, v[1])
 else:
     cell = neuron_model.NModel(P, verbool = True)
@@ -333,8 +339,8 @@ if len(t_spikes) > 0:
     E_data = []
     I_data = []
     for spike in range(len(t1)):
-        if count >= num_spikes:
-            break
+        # if count >= num_spikes:
+        #     break
         if c_model:
             v_pre, F_e, F_i = get_grad(cell_comp, t0[spike], t1[spike], dt, S_e,
                                 S_i, soln, stim)
@@ -348,6 +354,7 @@ if len(t_spikes) > 0:
 ### Plot Results ###
 fig, ax = pyplot.subplots(figsize=(8, 2.5))
 ax.plot(t, v[0, :], 'k')
+ax.plot(t, v[800, :], 'r')
 ax.set_xlim([0, T])
 ax.set_ylim([-80, 40])
 ax.set_yticks(np.arange(-75, 50, 25))
@@ -358,6 +365,9 @@ ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 ax.yaxis.set_ticks_position('left')
 ax.xaxis.set_ticks_position('bottom')
+yplot = np.arange(-75,25)
+for spike in range(len(t1)):
+    ax.plot(np.ones(yplot.shape)*t1[spike], yplot, c = np.array([0.5,0.5,0.5]))
 pyplot.tight_layout()
 
 if count > 0:
@@ -369,10 +379,13 @@ if count > 0:
     for e_dat, i_dat in zip(E_data, I_data):
         f_e, e_ind, s_e = e_dat
         f_i, i_ind, s_i = i_dat
-        ff_e = np.array(np.abs(f_e)) / np.max(np.abs(f_e))
-        ff_i = np.array(f_i)
-        if np.min(ff_i) < 0:
-            ff_i = -ff_i / np.min(ff_i)
+        f_e[f_e<0] = 0
+        f_i[f_i>0] = 0
+        ff_e = np.array(np.abs(f_e)) / np.max(np.abs(f_e)/5)
+        ff_e[ff_e>1] = 1
+        ff_i = -np.array(np.abs(f_i)) / np.max(np.abs(f_i))
+        # if np.min(ff_i) < 0:
+        #     ff_i = -ff_i / np.min(ff_i)
         plot_raster.plot_grad_example(ff_e, ff_i, e_ind, i_ind, s_e, s_i,
                                      t_window, i_positions, index, boundaries)
 
